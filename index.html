@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { margin: 20px; font-family: sans-serif; }
+    input, button { font-size: 16px; padding: 10px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <input id="text" placeholder="Введи текст">
+  <button onclick="send()">Отправить</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    function send() {
+      const text = document.getElementById('text').value;
+      const bot = 'ScanCaseBot'; // замени!
+      tg.openTelegramLink(`https://t.me/${bot}?start=${encodeURIComponent(text)}`);
+    }
+  </script>
+</body>
+</html
+  >
