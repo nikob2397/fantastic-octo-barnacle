@@ -25,6 +25,14 @@
             z-index: 1;
         }
 
+        /* CSS-фильтр для инверсии стандартных OSM тайлов в тёмную тему */
+        .leaflet-layer,
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out,
+        .leaflet-control-attribution {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
         .leaflet-container {
             background: #0d1117 !important;
         }
@@ -305,10 +313,10 @@
                 attributionControl: false
             }).setView([lat, lng], 14);
 
-            // Яркая тёмная карта — Stamen Toner (высокий контраст)
-            L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
-                maxZoom: 20,
-                attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap'
+            // Стандартные OSM тайлы + CSS фильтр для тёмной темы (без API ключей!)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
             // Маркер пользователя (ярко-голубой)
