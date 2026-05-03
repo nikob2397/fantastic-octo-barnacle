@@ -20,6 +20,9 @@
             overflow: hidden;
             height: 100vh;
             width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #loading-screen {
@@ -69,12 +72,9 @@
             margin-top: 8px;
         }
 
-        /* The map is the entire viewport, but clipped to a square canvas */
-        #map-wrapper {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        /* The map canvas: a square viewport that shows only a 6x6km portion */
+        #map-canvas {
+            position: relative;
             width: min(100vw, 100vh);
             height: min(100vw, 100vh);
             max-width: 600px;
@@ -82,25 +82,13 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-            z-index: 1;
         }
 
+        /* The actual map fills the canvas and can be zoomed/panned freely WITHIN the 6x6km bounds */
         #map {
             width: 100%;
             height: 100%;
             background: #e5e5e5;
-        }
-
-        /* Dark background outside the map */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0d0d0d;
-            z-index: 0;
         }
 
         .user-marker {
@@ -306,7 +294,7 @@
         <button class="retry-btn" onclick="initApp()">Попробовать снова</button>
     </div>
 
-    <div id="map-wrapper">
+    <div id="map-canvas">
         <div id="map"></div>
     </div>
 
@@ -433,12 +421,10 @@
             const northEast = [userLat + latOffset, userLng + lngOffset];
             const bounds = L.latLngBounds(southWest, northEast);
 
-            // Create map centered on user
+            // Create map centered on user, NO maxBounds - free zoom/pan!
             map = L.map('map', {
                 center: [userLat, userLng],
                 zoom: 14,
-                maxBounds: bounds,
-                maxBoundsViscosity: 1.0,
                 minZoom: 13,
                 maxZoom: 18,
                 attributionControl: true
@@ -450,7 +436,7 @@
                 maxZoom: 18
             }).addTo(map);
 
-            // Fit exactly to 6km bounds - this makes the map canvas exactly 6x6km
+            // Fit to 6km bounds initially
             map.fitBounds(bounds, { padding: [0, 0], animate: false });
 
             // Add user location marker
