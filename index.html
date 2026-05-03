@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Geo Map App</title>
+    <title>Satellite Map</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,13 +15,11 @@
         }
 
         body {
+            background: #1a1a1a;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #fff;
-            height: 100vh;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
         }
 
         #loading-screen {
@@ -30,20 +28,25 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a2e;
+            background: #1a1a1a;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
-            transition: opacity 0.5s;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .spinner {
             width: 50px;
             height: 50px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top-color: #00d4ff;
+            border: 3px solid #333;
+            border-top-color: #0088cc;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -53,225 +56,440 @@
             to { transform: rotate(360deg); }
         }
 
-        #loading-screen p {
-            color: #aaa;
+        .loading-text {
+            color: #fff;
             font-size: 16px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .loading-subtext {
+            color: #888;
+            font-size: 13px;
+            margin-top: 8px;
         }
 
         #map-container {
-            flex: 1;
-            position: relative;
-            padding: 10px;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #1a1a1a;
+            padding: 10px;
+        }
+
+        #map-wrapper {
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            position: relative;
         }
 
         #map {
             width: 100%;
             height: 100%;
-            max-width: 600px;
-            max-height: 600px;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            border: 2px solid rgba(255,255,255,0.1);
-        }
-
-        .leaflet-container {
-            background: #0a0a1a !important;
-        }
-
-        #info-panel {
-            position: fixed;
-            bottom: -200px;
-            left: 0;
-            right: 0;
-            background: rgba(26, 26, 46, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 20px 20px 0 0;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            transition: bottom 0.3s ease;
-            z-index: 500;
-        }
-
-        #info-panel.active {
-            bottom: 0;
-        }
-
-        #info-panel h3 {
-            color: #00d4ff;
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-
-        #info-panel p {
-            color: #ccc;
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        #info-panel .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 24px;
-            cursor: pointer;
         }
 
         .user-marker {
-            background: #00d4ff;
+            width: 20px !important;
+            height: 20px !important;
+            background: #0088cc;
             border: 3px solid #fff;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 0 10px rgba(0,212,255,0.5);
-        }
-
-        .user-marker::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 2px solid rgba(0,212,255,0.3);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 0 4px rgba(0, 136, 204, 0.3);
+            animation: pulse 2s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+            0%, 100% { box-shadow: 0 0 0 4px rgba(0, 136, 204, 0.3); }
+            50% { box-shadow: 0 0 0 12px rgba(0, 136, 204, 0.1); }
         }
 
-        .point-marker {
+        .random-marker {
+            width: 16px !important;
+            height: 16px !important;
             background: #ff6b6b;
             border: 2px solid #fff;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: bold;
-            font-size: 12px;
-            box-shadow: 0 0 15px rgba(255,107,107,0.5);
             cursor: pointer;
             transition: transform 0.2s;
         }
 
-        .point-marker:hover {
+        .random-marker:hover {
             transform: scale(1.2);
         }
 
+        #point-info {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120%);
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px 20px;
+            min-width: 280px;
+            max-width: 90vw;
+            z-index: 1000;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #point-info.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .info-title {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-dot {
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            border-radius: 50%;
+        }
+
+        .info-close {
+            color: #888;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+
+        .info-close:hover {
+            color: #fff;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .info-value {
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .distance-value {
+            color: #4ecdc4;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
         #error-screen {
-            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a2e;
+            background: #1a1a1a;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 1001;
+            z-index: 10000;
             padding: 20px;
+        }
+
+        #error-screen.visible {
+            display: flex;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .error-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
             text-align: center;
         }
 
-        #error-screen h2 {
-            color: #ff6b6b;
-            margin-bottom: 15px;
-        }
-
-        #error-screen p {
-            color: #aaa;
-            margin-bottom: 20px;
+        .error-desc {
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
+            line-height: 1.5;
         }
 
         .retry-btn {
-            background: #00d4ff;
-            color: #1a1a2e;
+            background: #0088cc;
+            color: #fff;
             border: none;
-            padding: 12px 30px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
         }
 
         .retry-btn:hover {
-            background: #00a8cc;
+            background: #0099e6;
         }
 
-        .distance-badge {
-            background: rgba(0,0,0,0.7);
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            white-space: nowrap;
+        .leaflet-control-attribution {
+            font-size: 9px !important;
+        }
+
+        .leaflet-control-zoom {
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            background: rgba(30,30,30,0.9) !important;
+            color: #fff !important;
+            border-color: rgba(255,255,255,0.1) !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(50,50,50,0.9) !important;
         }
     </style>
 </head>
 <body>
     <div id="loading-screen">
         <div class="spinner"></div>
-        <p>Запрашиваем геолокацию...</p>
+        <div class="loading-text">Запрашиваем геолокацию...</div>
+        <div class="loading-subtext">Пожалуйста, разрешите доступ к местоположению</div>
     </div>
 
     <div id="error-screen">
-        <h2>⚠️ Ошибка доступа</h2>
-        <p id="error-message">Не удалось получить геолокацию</p>
-        <button class="retry-btn" onclick="requestLocation()">Повторить</button>
+        <div class="error-icon">📍</div>
+        <div class="error-title">Не удалось получить геолокацию</div>
+        <div class="error-desc" id="error-desc">Проверьте настройки разрешений и попробуйте снова</div>
+        <button class="retry-btn" onclick="initApp()">Попробовать снова</button>
     </div>
 
     <div id="map-container">
-        <div id="map"></div>
+        <div id="map-wrapper">
+            <div id="map"></div>
+        </div>
     </div>
 
-    <div id="info-panel">
-        <button class="close-btn" onclick="closeInfoPanel()">×</button>
-        <h3>📍 Точка <span id="point-number"></span></h3>
-        <p><strong>Расстояние:</strong> <span id="point-distance"></span></p>
-        <p><strong>Широта:</strong> <span id="point-lat"></span></p>
-        <p><strong>Долгота:</strong> <span id="point-lng"></span></p>
+    <div id="point-info">
+        <div class="info-header">
+            <div class="info-title">
+                <div class="info-dot"></div>
+                Точка <span id="point-number">1</span>
+            </div>
+            <div class="info-close" onclick="closeInfo()">&times;</div>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Расстояние</span>
+            <span class="info-value distance-value" id="info-distance">—</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Широта</span>
+            <span class="info-value" id="info-lat">—</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Долгота</span>
+            <span class="info-value" id="info-lng">—</span>
+        </div>
     </div>
 
     <script>
+        // Initialize Telegram WebApp
         let tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        let map;
-        let userLat, userLng;
+        let map = null;
+        let userLat = null;
+        let userLng = null;
         let randomPoints = [];
-        let markers = [];
-        let mapBounds;
+        let mapMarkers = [];
 
-        // Константы
-        const MAP_SIZE_KM = 6; // 6x6 км (3 км в каждую сторону)
-        const POINT_MIN_DIST_KM = 0.7; // минимум 700м
-        const POINT_MAX_DIST_KM = 2.5; // максимум 2.5км
-        const NUM_POINTS = 3;
+        // Earth radius in meters
+        const EARTH_RADIUS = 6371000;
 
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            requestLocation();
-        });
+        function toRad(deg) {
+            return deg * Math.PI / 180;
+        }
 
-        function requestLocation() {
-            document.getElementById('loading-screen').style.display = 'flex';
-            document.getElementById('error-screen').style.display = 'none';
+        function toDeg(rad) {
+            return rad * 180 / Math.PI;
+        }
+
+        // Haversine distance in meters
+        function getDistance(lat1, lng1, lat2, lng2) {
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return EARTH_RADIUS * c;
+        }
+
+        // Generate random point within annulus (minDist, maxDist) from center
+        function generateRandomPoint(centerLat, centerLng, minDist, maxDist) {
+            // Random angle
+            const angle = Math.random() * 2 * Math.PI;
+            // Random distance (uniform distribution in annulus)
+            const dist = Math.sqrt(
+                Math.random() * (maxDist*maxDist - minDist*minDist) + minDist*minDist
+            );
+
+            // Convert to lat/lng offset
+            const latOffset = (dist / EARTH_RADIUS) * (180 / Math.PI);
+            const lngOffset = latOffset / Math.cos(toRad(centerLat));
+
+            const lat = centerLat + latOffset * Math.cos(angle);
+            const lng = centerLng + lngOffset * Math.sin(angle);
+
+            return { lat, lng };
+        }
+
+        // Load or generate random points
+        function loadOrGeneratePoints() {
+            const saved = localStorage.getItem('random_points');
+            const savedLat = localStorage.getItem('user_lat');
+            const savedLng = localStorage.getItem('user_lng');
+
+            // Check if we have saved points for this location (within 100m tolerance)
+            if (saved && savedLat && savedLng) {
+                const dist = getDistance(userLat, userLng, parseFloat(savedLat), parseFloat(savedLng));
+                if (dist < 100) {
+                    randomPoints = JSON.parse(saved);
+                    return;
+                }
+            }
+
+            // Generate new points
+            randomPoints = [];
+            for (let i = 0; i < 3; i++) {
+                randomPoints.push(generateRandomPoint(userLat, userLng, 700, 2500));
+            }
+
+            // Save to localStorage
+            localStorage.setItem('random_points', JSON.stringify(randomPoints));
+            localStorage.setItem('user_lat', userLat.toString());
+            localStorage.setItem('user_lng', userLng.toString());
+        }
+
+        function showPointInfo(index, point) {
+            const dist = getDistance(userLat, userLng, point.lat, point.lng);
+
+            document.getElementById('point-number').textContent = index + 1;
+            document.getElementById('info-distance').textContent = dist < 1000 
+                ? Math.round(dist) + ' м' 
+                : (dist / 1000).toFixed(2) + ' км';
+            document.getElementById('info-lat').textContent = point.lat.toFixed(6);
+            document.getElementById('info-lng').textContent = point.lng.toFixed(6);
+
+            document.getElementById('point-info').classList.add('visible');
+        }
+
+        function closeInfo() {
+            document.getElementById('point-info').classList.remove('visible');
+        }
+
+        function initMap() {
+            // Calculate bounds for 6km x 6km square (3km radius)
+            const latOffset = (3000 / EARTH_RADIUS) * (180 / Math.PI);
+            const lngOffset = latOffset / Math.cos(toRad(userLat));
+
+            const southWest = [userLat - latOffset, userLng - lngOffset];
+            const northEast = [userLat + latOffset, userLng + lngOffset];
+            const bounds = L.latLngBounds(southWest, northEast);
+
+            // Create map
+            map = L.map('map', {
+                center: [userLat, userLng],
+                zoom: 14,
+                maxBounds: bounds,
+                maxBoundsViscosity: 1.0,
+                minZoom: 13,
+                maxZoom: 18,
+                attributionControl: true
+            });
+
+            // Add satellite tile layer (Esri)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Fit to our 6km bounds
+            map.fitBounds(bounds, { padding: [0, 0], animate: false });
+
+            // Add user location marker
+            const userIcon = L.divIcon({
+                className: 'user-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            L.marker([userLat, userLng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
+
+            // Load/generate random points
+            loadOrGeneratePoints();
+
+            // Add random point markers
+            const randomIcon = L.divIcon({
+                className: 'random-marker',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            randomPoints.forEach((point, index) => {
+                const marker = L.marker([point.lat, point.lng], { icon: randomIcon })
+                    .addTo(map)
+                    .on('click', () => showPointInfo(index, point));
+                mapMarkers.push(marker);
+            });
+
+            // Hide loading, show map
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('error-screen').classList.remove('visible');
+        }
+
+        function showError(message) {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('error-desc').textContent = message;
+            document.getElementById('error-screen').classList.add('visible');
+        }
+
+        function initApp() {
+            document.getElementById('loading-screen').classList.remove('hidden');
+            document.getElementById('error-screen').classList.remove('visible');
 
             if (!navigator.geolocation) {
                 showError('Геолокация не поддерживается вашим устройством');
@@ -279,8 +497,26 @@
             }
 
             navigator.geolocation.getCurrentPosition(
-                onLocationSuccess,
-                onLocationError,
+                (position) => {
+                    userLat = position.coords.latitude;
+                    userLng = position.coords.longitude;
+                    initMap();
+                },
+                (error) => {
+                    let msg = 'Не удалось определить местоположение';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg = 'Доступ к геолокации запрещён. Проверьте настройки браузера.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg = 'Информация о местоположении недоступна.';
+                            break;
+                        case error.TIMEOUT:
+                            msg = 'Превышено время ожидания геолокации.';
+                            break;
+                    }
+                    showError(msg);
+                },
                 {
                     enableHighAccuracy: true,
                     timeout: 15000,
@@ -289,246 +525,15 @@
             );
         }
 
-        function onLocationSuccess(position) {
-            userLat = position.coords.latitude;
-            userLng = position.coords.longitude;
+        // Start
+        initApp();
 
-            document.getElementById('loading-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('loading-screen').style.display = 'none';
-            }, 500);
-
-            initMap();
-        }
-
-        function onLocationError(error) {
-            let message = 'Не удалось получить геолокацию';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    message = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message = 'Информация о местоположении недоступна.';
-                    break;
-                case error.TIMEOUT:
-                    message = 'Время ожидания геолокации истекло.';
-                    break;
+        // Close info on map click
+        document.getElementById('map').addEventListener('click', (e) => {
+            if (e.target.id === 'map' || e.target.classList.contains('leaflet-container')) {
+                closeInfo();
             }
-            showError(message);
-        }
-
-        function showError(message) {
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('error-screen').style.display = 'flex';
-            document.getElementById('error-message').textContent = message;
-        }
-
-        function initMap() {
-            // Вычисляем границы карты (6x6 км)
-            mapBounds = getBoundsFromCenter(userLat, userLng, MAP_SIZE_KM);
-
-            // Создаём карту — масштабирование разрешено, перемещение запрещено
-            map = L.map('map', {
-                zoomControl: false,
-                attributionControl: false,
-                dragging: false,          // нельзя тянуть/сдвигать
-                touchZoom: true,          // можно pinch-to-zoom
-                scrollWheelZoom: true,    // можно колёсиком мыши
-                doubleClickZoom: true,    // можно двойным кликом
-                boxZoom: false,
-                keyboard: false,
-                tap: false,
-                maxBounds: mapBounds,
-                maxBoundsViscosity: 1.0,
-                minZoom: 13,              // минимальный zoom (отдалённый вид ~6км)
-                maxZoom: 18               // максимальный zoom (приближённый вид)
-            });
-
-            // Спутниковая подложка (Esri World Imagery)
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Esri',
-                bounds: mapBounds
-            }).addTo(map);
-
-            // Добавляем подписи
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Esri',
-                bounds: mapBounds
-            }).addTo(map);
-
-            // Маркер пользователя
-            const userIcon = L.divIcon({
-                className: 'user-marker',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            });
-
-            L.marker([userLat, userLng], { icon: userIcon }).addTo(map);
-
-            // Устанавливаем вид ровно на границы карты
-            map.fitBounds(mapBounds, { padding: [0, 0], animate: false });
-
-            // Загружаем или создаём точки
-            loadOrCreatePoints();
-        }
-
-        function getBoundsFromCenter(lat, lng, sizeKm) {
-            // Приблизительно: 1 град широты ~ 111 км
-            // 1 град долготы ~ 111 * cos(широта) км
-            const latDelta = sizeKm / 2 / 111;
-            const lngDelta = sizeKm / 2 / (111 * Math.cos(lat * Math.PI / 180));
-
-            return L.latLngBounds(
-                [lat - latDelta, lng - lngDelta],
-                [lat + latDelta, lng + lngDelta]
-            );
-        }
-
-        function loadOrCreatePoints() {
-            const saved = localStorage.getItem('randomPoints');
-            const savedCenter = localStorage.getItem('centerLocation');
-
-            // Проверяем, есть ли сохранённые точки и совпадает ли центр (с точностью ~100м)
-            if (saved && savedCenter) {
-                const center = JSON.parse(savedCenter);
-                const dist = getDistance(userLat, userLng, center.lat, center.lng);
-
-                if (dist < 0.1) { // менее 100м от предыдущей позиции
-                    randomPoints = JSON.parse(saved);
-                    displayPoints();
-                    return;
-                }
-            }
-
-            // Создаём новые точки
-            createRandomPoints();
-        }
-
-        function createRandomPoints() {
-            randomPoints = [];
-            let attempts = 0;
-            const maxAttempts = 1000;
-
-            while (randomPoints.length < NUM_POINTS && attempts < maxAttempts) {
-                attempts++;
-
-                // Случайное расстояние между min и max
-                const dist = POINT_MIN_DIST_KM + Math.random() * (POINT_MAX_DIST_KM - POINT_MIN_DIST_KM);
-                // Случайный угол
-                const angle = Math.random() * 2 * Math.PI;
-
-                // Переводим в координаты
-                const point = getPointAtDistance(userLat, userLng, dist, angle);
-
-                // Проверяем, что точка в пределах карты (3 км от центра = 6x6)
-                const distFromCenter = getDistance(userLat, userLng, point.lat, point.lng);
-                if (distFromCenter > MAP_SIZE_KM / 2) continue;
-
-                // Проверяем минимальное расстояние между точками
-                let tooClose = false;
-                for (let p of randomPoints) {
-                    if (getDistance(p.lat, p.lng, point.lat, point.lng) < 0.3) { // мин 300м между точками
-                        tooClose = true;
-                        break;
-                    }
-                }
-                if (tooClose) continue;
-
-                randomPoints.push({
-                    lat: point.lat,
-                    lng: point.lng,
-                    id: randomPoints.length + 1
-                });
-            }
-
-            // Сохраняем
-            localStorage.setItem('randomPoints', JSON.stringify(randomPoints));
-            localStorage.setItem('centerLocation', JSON.stringify({ lat: userLat, lng: userLng }));
-
-            displayPoints();
-        }
-
-        function getPointAtDistance(lat, lng, distKm, angleRad) {
-            // Переводим расстояние в градусы (приблизительно)
-            const R = 6371; // радиус Земли в км
-            const latRad = lat * Math.PI / 180;
-            const lngRad = lng * Math.PI / 180;
-
-            const newLatRad = Math.asin(
-                Math.sin(latRad) * Math.cos(distKm / R) +
-                Math.cos(latRad) * Math.sin(distKm / R) * Math.cos(angleRad)
-            );
-
-            const newLngRad = lngRad + Math.atan2(
-                Math.sin(angleRad) * Math.sin(distKm / R) * Math.cos(latRad),
-                Math.cos(distKm / R) - Math.sin(latRad) * Math.sin(newLatRad)
-            );
-
-            return {
-                lat: newLatRad * 180 / Math.PI,
-                lng: newLngRad * 180 / Math.PI
-            };
-        }
-
-        function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        function displayPoints() {
-            // Очищаем старые маркеры
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-
-            randomPoints.forEach((point, index) => {
-                const dist = getDistance(userLat, userLng, point.lat, point.lng);
-
-                const pointIcon = L.divIcon({
-                    className: 'point-marker',
-                    html: (index + 1).toString(),
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-
-                const marker = L.marker([point.lat, point.lng], { icon: pointIcon })
-                    .addTo(map)
-                    .on('click', () => showPointInfo(point, dist));
-
-                markers.push(marker);
-
-                // Подпись с расстоянием
-                const distLabel = L.divIcon({
-                    className: 'distance-badge',
-                    html: dist.toFixed(2) + ' км',
-                    iconSize: [80, 20],
-                    iconAnchor: [40, -15]
-                });
-
-                const labelMarker = L.marker([point.lat, point.lng], { icon: distLabel, interactive: false })
-                    .addTo(map);
-                markers.push(labelMarker);
-            });
-        }
-
-        function showPointInfo(point, dist) {
-            document.getElementById('point-number').textContent = point.id;
-            document.getElementById('point-distance').textContent = dist.toFixed(3) + ' км';
-            document.getElementById('point-lat').textContent = point.lat.toFixed(6);
-            document.getElementById('point-lng').textContent = point.lng.toFixed(6);
-            document.getElementById('info-panel').classList.add('active');
-        }
-
-        function closeInfoPanel() {
-            document.getElementById('info-panel').classList.remove('active');
-        }
+        });
     </script>
 </body>
 </html>
