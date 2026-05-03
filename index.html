@@ -19,7 +19,6 @@
         }
         html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
-        /* Screens */
         .screen {
             position: fixed; inset: 0; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -44,12 +43,10 @@
         .perm-title { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
         .perm-desc { font-size: 15px; color: var(--hint); line-height: 1.5; margin-bottom: 32px; max-width: 300px; }
 
-        /* Map */
         #map-wrap { position: fixed; inset: 0; z-index: 1; display: none; }
         #map-wrap.visible { display: block; }
         #map { width: 100%; height: 100%; }
 
-        /* Controls — z-index выше карты */
         .ctrl { position: fixed; z-index: 500; }
         .map-toggle {
             top: 12px; left: 12px;
@@ -80,7 +77,6 @@
         }
         .debug.visible { display: block; }
 
-        /* Bottom Sheet */
         .sheet {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 600;
             background: rgba(28,28,30,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -100,7 +96,6 @@
         .sheet-value.dist { color: var(--btn); font-size: 18px; font-weight: 600; }
         .sheet-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 28px; color: var(--hint); cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
-        /* Leaflet popup */
         .leaflet-popup-content-wrapper { background: rgba(28,28,30,0.95) !important; color: white !important; border-radius: 12px !important; backdrop-filter: blur(10px); }
         .leaflet-popup-tip { background: rgba(28,28,30,0.95) !important; }
         .leaflet-popup-content { margin: 8px 12px !important; font-size: 14px !important; }
