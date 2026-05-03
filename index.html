@@ -171,14 +171,15 @@
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            $(id)?.classList.remove('hidden');
+            const el = $(id);
+            if (el) el.classList.remove('hidden');
         }
         function setLoad(t, s) { $('.loading-text').textContent = t; $('loading-sub').textContent = s || ''; showScreen('screen-loading'); }
         function showErr(t, d) { $('err-title').textContent = t; $('err-desc').textContent = d; showScreen('screen-error'); }
 
         function savePts(pts) { localStorage.setItem(STORAGE_KEY, JSON.stringify({ points: pts, at: Date.now() })); }
         function loadPts() {
-            try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY)); return d?.points?.length === POINTS_COUNT ? d.points : null; }
+            try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY)); return d && d.points && d.points.length === POINTS_COUNT ? d.points : null; }
             catch { return null; }
         }
         function clearPts() { localStorage.removeItem(STORAGE_KEY); points = []; markers = []; }
@@ -267,9 +268,9 @@
 
         async function reqTgLoc() {
             return new Promise((res, rej) => {
-                if (!tg?.LocationManager) return rej(new Error('No LocationManager'));
+                if (!tg || !tg.LocationManager) return rej(new Error('No LocationManager'));
                 if (tg.LocationManager.isSupported && !tg.LocationManager.isSupported()) return rej(new Error('Not supported'));
-                const cb = loc => loc?.latitude !== undefined ? res({ lat: loc.latitude, lng: loc.longitude, acc: loc.horizontal_accuracy }) : rej(new Error('Empty'));
+                const cb = loc => loc && loc.latitude !== undefined ? res({ lat: loc.latitude, lng: loc.longitude, acc: loc.horizontal_accuracy }) : rej(new Error('Empty'));
                 if (tg.LocationManager.requestLocation) { log('Using requestLocation'); tg.LocationManager.requestLocation(cb); }
                 else if (tg.LocationManager.getLocation) { log('Using getLocation'); tg.LocationManager.getLocation(cb); }
                 else rej(new Error('No method'));
@@ -289,7 +290,9 @@
             });
         }
         async function getLoc() {
-            if (tg?.LocationManager) try { return await reqTgLoc(); } catch (e) { log('TG fail:', e.message); }
+            if (tg && tg.LocationManager) {
+                try { return await reqTgLoc(); } catch (e) { log('TG fail:', e.message); }
+            }
             return await reqBrowserLoc();
         }
 
@@ -306,7 +309,7 @@
         }
 
         function init() {
-            if (window.Telegram?.WebApp) {
+            if (window.Telegram && window.Telegram.WebApp) {
                 tg = window.Telegram.WebApp; tg.ready(); tg.expand();
                 log('TG ready, ver:', tg.version, 'LM:', !!tg.LocationManager);
             }
