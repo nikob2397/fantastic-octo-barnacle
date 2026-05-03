@@ -16,7 +16,7 @@
             height: 100%;
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
+            background: #0d1117;
         }
 
         #map {
@@ -25,24 +25,25 @@
             z-index: 1;
         }
 
-        /* Тёмная тема карты Leaflet */
         .leaflet-container {
-            background: #1a1a2e !important;
+            background: #0d1117 !important;
         }
 
         .leaflet-popup-content-wrapper {
-            background: #2d2d44 !important;
-            color: #e0e0e0 !important;
+            background: #161b22 !important;
+            color: #c9d1d9 !important;
             border-radius: 12px !important;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+            border: 1px solid #30363d;
         }
 
         .leaflet-popup-tip {
-            background: #2d2d44 !important;
+            background: #161b22 !important;
+            border: 1px solid #30363d;
         }
 
         .leaflet-popup-content {
-            color: #e0e0e0 !important;
+            color: #c9d1d9 !important;
         }
 
         .info-panel {
@@ -50,17 +51,17 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(45, 45, 68, 0.95);
+            background: rgba(22, 27, 34, 0.95);
             padding: 15px 20px;
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             z-index: 1000;
             min-width: 280px;
             max-width: 90vw;
             text-align: center;
             display: none;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid #30363d;
         }
 
         .info-panel.active {
@@ -75,20 +76,20 @@
 
         .info-panel h3 {
             font-size: 16px;
-            color: #e0e0e0;
+            color: #e6edf3;
             margin-bottom: 8px;
         }
 
         .info-panel p {
             font-size: 14px;
-            color: #a0a0b0;
+            color: #8b949e;
             margin: 4px 0;
         }
 
         .info-panel .distance {
             font-size: 24px;
             font-weight: bold;
-            color: #ff6b6b;
+            color: #f85149;
             margin: 8px 0;
         }
 
@@ -99,7 +100,7 @@
             background: none;
             border: none;
             font-size: 20px;
-            color: #888;
+            color: #8b949e;
             cursor: pointer;
         }
 
@@ -109,13 +110,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a2e;
+            background: #0d1117;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            color: #e0e0e0;
+            color: #c9d1d9;
         }
 
         .loading-overlay.hidden {
@@ -125,8 +126,8 @@
         .spinner {
             width: 50px;
             height: 50px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top-color: #4ecdc4;
+            border: 4px solid rgba(48, 54, 61, 0.5);
+            border-top-color: #58a6ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -142,13 +143,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a2e;
+            background: #0d1117;
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            color: #e0e0e0;
+            color: #c9d1d9;
             padding: 20px;
             text-align: center;
         }
@@ -160,8 +161,8 @@
         .retry-btn {
             margin-top: 20px;
             padding: 12px 30px;
-            background: #4ecdc4;
-            color: #1a1a2e;
+            background: #238636;
+            color: #ffffff;
             border: none;
             border-radius: 25px;
             font-size: 16px;
@@ -173,14 +174,14 @@
             position: fixed;
             top: 10px;
             right: 10px;
-            background: rgba(45, 45, 68, 0.9);
+            background: rgba(22, 27, 34, 0.9);
             padding: 10px 15px;
             border-radius: 10px;
             font-size: 12px;
             z-index: 1000;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            color: #e0e0e0;
-            border: 1px solid rgba(255,255,255,0.08);
+            color: #c9d1d9;
+            border: 1px solid #30363d;
         }
 
         .legend-item {
@@ -221,11 +222,11 @@
 
     <div class="legend">
         <div class="legend-item">
-            <div class="legend-dot" style="background:#4ecdc4;"></div>
+            <div class="legend-dot" style="background:#58a6ff;"></div>
             <span>Вы здесь</span>
         </div>
         <div class="legend-item">
-            <div class="legend-dot" style="background:#ff6b6b;"></div>
+            <div class="legend-dot" style="background:#f85149;"></div>
             <span>Случайные точки</span>
         </div>
     </div>
@@ -304,16 +305,16 @@
                 attributionControl: false
             }).setView([lat, lng], 14);
 
-            // Тёмная карта CartoDB Dark Matter
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap &copy; CARTO'
+            // Яркая тёмная карта — Stamen Toner (высокий контраст)
+            L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20,
+                attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap'
             }).addTo(map);
 
-            // Маркер пользователя (бирюзовый)
+            // Маркер пользователя (ярко-голубой)
             const userIcon = L.divIcon({
                 className: 'user-marker',
-                html: '<div style="width:20px;height:20px;background:#4ecdc4;border:3px solid #1a1a2e;border-radius:50%;box-shadow:0 2px 12px rgba(78,205,196,0.6);"></div>',
+                html: '<div style="width:20px;height:20px;background:#58a6ff;border:3px solid #0d1117;border-radius:50%;box-shadow:0 2px 12px rgba(88,166,255,0.7);"></div>',
                 iconSize: [20, 20],
                 iconAnchor: [10, 10]
             });
@@ -321,10 +322,10 @@
             userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
             userMarker.bindPopup('<b>📍 Вы здесь</b><br>' + formatCoords(lat, lng)).openPopup();
 
-            // 2 случайные точки (красно-розовые)
+            // 2 случайные точки (ярко-красные)
             const randomIcon = L.divIcon({
                 className: 'random-marker',
-                html: '<div style="width:24px;height:24px;background:#ff6b6b;border:3px solid #1a1a2e;border-radius:50%;box-shadow:0 2px 12px rgba(255,107,107,0.6);display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-size:12px;font-weight:bold;">?</div>',
+                html: '<div style="width:24px;height:24px;background:#f85149;border:3px solid #0d1117;border-radius:50%;box-shadow:0 2px 12px rgba(248,81,73,0.7);display:flex;align-items:center;justify-content:center;color:#0d1117;font-size:12px;font-weight:bold;">?</div>',
                 iconSize: [24, 24],
                 iconAnchor: [12, 12]
             });
