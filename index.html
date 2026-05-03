@@ -8,785 +8,319 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
             --bg: var(--tg-theme-bg-color, #1c1c1e);
             --text: var(--tg-theme-text-color, #ffffff);
             --hint: var(--tg-theme-hint-color, #8e8e93);
-            --button: var(--tg-theme-button-color, #0a84ff);
-            --button-text: var(--tg-theme-button-text-color, #ffffff);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
-            --accent: #0a84ff;
-            --danger: #ff3b30;
-            --success: #34c759;
+            --btn: var(--tg-theme-button-color, #0a84ff);
+            --btn-text: var(--tg-theme-button-text-color, #ffffff);
+            --sec: var(--tg-theme-secondary-bg-color, #2c2c2e);
         }
-        html, body {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+        html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
-        /* === SCREENS === */
+        /* Screens */
         .screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            background: var(--bg);
-            padding: 24px;
-            text-align: center;
+            position: fixed; inset: 0; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg); padding: 24px; text-align: center;
             transition: opacity 0.3s ease;
         }
-        .screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-            z-index: -1;
-        }
+        .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; }
 
-        /* Loading */
-        .spinner {
-            width: 56px;
-            height: 56px;
-            border: 4px solid rgba(10, 132, 255, 0.15);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 24px;
-        }
+        .spinner { width: 56px; height: 56px; border: 4px solid rgba(10,132,255,0.15); border-top-color: var(--btn); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 24px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text {
-            font-size: 17px;
-            color: var(--text);
-            font-weight: 400;
-        }
-        .loading-sub {
-            font-size: 13px;
-            color: var(--hint);
-            margin-top: 8px;
-        }
+        .loading-text { font-size: 17px; }
+        .loading-sub { font-size: 13px; color: var(--hint); margin-top: 8px; }
 
-        /* Error */
-        .error-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-        .error-title {
-            font-size: 22px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--text);
-        }
-        .error-desc {
-            font-size: 15px;
-            color: var(--hint);
-            line-height: 1.5;
-            margin-bottom: 32px;
-            max-width: 320px;
-        }
-        .btn {
-            background: var(--button);
-            color: var(--button-text);
-            border: none;
-            padding: 14px 32px;
-            border-radius: 12px;
-            font-size: 17px;
-            font-weight: 500;
-            cursor: pointer;
-            width: 100%;
-            max-width: 280px;
-            transition: opacity 0.2s;
-        }
+        .err-icon { font-size: 64px; margin-bottom: 20px; }
+        .err-title { font-size: 22px; font-weight: 600; margin-bottom: 12px; }
+        .err-desc { font-size: 15px; color: var(--hint); line-height: 1.5; margin-bottom: 32px; max-width: 320px; }
+        .btn { background: var(--btn); color: var(--btn-text); border: none; padding: 14px 32px; border-radius: 12px; font-size: 17px; font-weight: 500; cursor: pointer; width: 100%; max-width: 280px; transition: opacity 0.2s; }
         .btn:active { opacity: 0.8; }
-        .btn-secondary {
-            background: var(--secondary-bg);
-            color: var(--text);
-            margin-top: 12px;
-        }
+        .btn-sec { background: var(--sec); color: var(--text); margin-top: 12px; }
 
-        /* Permission */
-        .perm-icon {
-            font-size: 72px;
-            margin-bottom: 20px;
-        }
-        .perm-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-        .perm-desc {
-            font-size: 15px;
-            color: var(--hint);
-            line-height: 1.5;
-            margin-bottom: 32px;
-            max-width: 300px;
-        }
+        .perm-icon { font-size: 72px; margin-bottom: 20px; }
+        .perm-title { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+        .perm-desc { font-size: 15px; color: var(--hint); line-height: 1.5; margin-bottom: 32px; max-width: 300px; }
 
         /* Map */
-        #map-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-            display: none;
+        #map-wrap { position: fixed; inset: 0; z-index: 1; display: none; }
+        #map-wrap.visible { display: block; }
+        #map { width: 100%; height: 100%; }
+
+        /* Controls — z-index выше карты */
+        .ctrl { position: fixed; z-index: 500; }
+        .map-toggle {
+            top: 12px; left: 12px;
+            display: flex; gap: 4px;
+            background: rgba(0,0,0,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 10px; padding: 4px; border: 1px solid rgba(255,255,255,0.15);
         }
-        #map-container.visible { display: block; }
-        #map {
-            width: 100%;
-            height: 100%;
+        .map-toggle .tbtn { background: transparent; color: rgba(255,255,255,0.6); border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .map-toggle .tbtn.active { background: var(--btn); color: white; }
+
+        .legend {
+            top: 12px; right: 12px;
+            background: rgba(0,0,0,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 10px 14px; border-radius: 12px; font-size: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.15); color: white;
         }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .legend-item:last-child { margin-bottom: 0; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot.u { background: var(--btn); }
+        .dot.p { background: #ff3b30; }
+
+        .debug {
+            bottom: 16px; left: 16px;
+            background: rgba(0,0,0,0.65); backdrop-filter: blur(12px); color: var(--hint);
+            border: 1px solid rgba(255,255,255,0.15); padding: 8px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; display: none;
+        }
+        .debug.visible { display: block; }
 
         /* Bottom Sheet */
-        .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(28, 28, 30, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+        .sheet {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 600;
+            background: rgba(28,28,30,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-radius: 20px 20px 0 0;
             padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-            z-index: 200;
             transform: translateY(110%);
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-            max-height: 55vh;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+            max-height: 55vh; border-top: 1px solid rgba(255,255,255,0.1);
         }
-        .bottom-sheet.visible {
-            transform: translateY(0);
-        }
-        .sheet-handle {
-            width: 36px;
-            height: 5px;
-            background: var(--hint);
-            border-radius: 3px;
-            margin: 0 auto 16px;
-            opacity: 0.4;
-        }
-        .sheet-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .sheet-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 0.5px solid rgba(142,142,147,0.2);
-        }
+        .sheet.visible { transform: translateY(0); }
+        .sheet-handle { width: 36px; height: 5px; background: var(--hint); border-radius: 3px; margin: 0 auto 16px; opacity: 0.4; }
+        .sheet-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+        .sheet-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 0.5px solid rgba(142,142,147,0.2); }
         .sheet-row:last-child { border-bottom: none; }
-        .sheet-label {
-            font-size: 15px;
-            color: var(--hint);
-        }
-        .sheet-value {
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--text);
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-        .sheet-value.distance {
-            color: var(--accent);
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .sheet-close {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            font-size: 28px;
-            color: var(--hint);
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .sheet-label { font-size: 15px; color: var(--hint); }
+        .sheet-value { font-size: 15px; font-weight: 500; font-family: 'SF Mono', Monaco, monospace; }
+        .sheet-value.dist { color: var(--btn); font-size: 18px; font-weight: 600; }
+        .sheet-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 28px; color: var(--hint); cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
-        /* Legend */
-        .legend {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            background: rgba(28, 28, 30, 0.85);
-            padding: 10px 14px;
-            border-radius: 12px;
-            z-index: 100;
-            font-size: 12px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-        }
-        .legend-item:last-child { margin-bottom: 0; }
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        .legend-dot.user { background: var(--accent); }
-        .legend-dot.point { background: var(--danger); }
-
-        /* Map type toggle */
-        .map-toggle {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 100;
-            display: flex;
-            gap: 4px;
-            background: rgba(28, 28, 30, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 4px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .map-toggle-btn {
-            background: transparent;
-            color: rgba(255,255,255,0.6);
-            border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .map-toggle-btn.active {
-            background: var(--accent);
-            color: white;
-        }
-
-        /* Debug panel */
-        .debug-btn {
-            position: fixed;
-            bottom: 16px;
-            left: 16px;
-            z-index: 100;
-            background: rgba(28, 28, 30, 0.85);
-            backdrop-filter: blur(10px);
-            color: var(--hint);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            display: none;
-        }
-        .debug-btn.visible { display: block; }
-
-        /* Leaflet popup dark */
-        .leaflet-popup-content-wrapper {
-            background: rgba(28, 28, 30, 0.95) !important;
-            color: white !important;
-            border-radius: 12px !important;
-            backdrop-filter: blur(10px);
-        }
-        .leaflet-popup-tip {
-            background: rgba(28, 28, 30, 0.95) !important;
-        }
-        .leaflet-popup-content {
-            margin: 8px 12px !important;
-            font-size: 14px !important;
-        }
-        .leaflet-container a.leaflet-popup-close-button {
-            color: rgba(255,255,255,0.6) !important;
-        }
+        /* Leaflet popup */
+        .leaflet-popup-content-wrapper { background: rgba(28,28,30,0.95) !important; color: white !important; border-radius: 12px !important; backdrop-filter: blur(10px); }
+        .leaflet-popup-tip { background: rgba(28,28,30,0.95) !important; }
+        .leaflet-popup-content { margin: 8px 12px !important; font-size: 14px !important; }
+        .leaflet-container a.leaflet-popup-close-button { color: rgba(255,255,255,0.6) !important; }
     </style>
 </head>
 <body>
 
-    <!-- LOADING SCREEN -->
     <div id="screen-loading" class="screen">
         <div class="spinner"></div>
         <div class="loading-text">Запрашиваем геолокацию...</div>
         <div class="loading-sub" id="loading-sub">Подождите немного</div>
     </div>
 
-    <!-- PERMISSION SCREEN -->
     <div id="screen-perm" class="screen hidden">
         <div class="perm-icon">📍</div>
         <div class="perm-title">Нужен доступ к геолокации</div>
-        <div class="perm-desc">Для работы приложения необходимо разрешить доступ к вашему местоположению. Это нужно, чтобы показать точки рядом с вами.</div>
+        <div class="perm-desc">Для работы приложения необходимо разрешить доступ к вашему местоположению.</div>
         <button class="btn" id="btn-request-loc">Разрешить доступ</button>
-        <button class="btn btn-secondary" id="btn-use-browser">Использовать браузерный GPS</button>
+        <button class="btn btn-sec" id="btn-use-browser">Использовать браузерный GPS</button>
     </div>
 
-    <!-- ERROR SCREEN -->
     <div id="screen-error" class="screen hidden">
-        <div class="error-icon">⚠️</div>
-        <div class="error-title" id="error-title">Ошибка</div>
-        <div class="error-desc" id="error-desc">Что-то пошло не так</div>
+        <div class="err-icon">⚠️</div>
+        <div class="err-title" id="err-title">Ошибка</div>
+        <div class="err-desc" id="err-desc">Что-то пошло не так</div>
         <button class="btn" id="btn-retry">Попробовать снова</button>
-        <button class="btn btn-secondary" id="btn-reset-points">Сбросить точки</button>
+        <button class="btn btn-sec" id="btn-reset">Сбросить точки</button>
     </div>
 
-    <!-- MAP -->
-    <div id="map-container">
+    <div id="map-wrap">
         <div id="map"></div>
-        <div class="map-toggle">
-            <button class="map-toggle-btn active" id="btn-sat" data-type="sat">🛰️ Спутник</button>
-            <button class="map-toggle-btn" id="btn-hyb" data-type="hyb">🗺️ Гибрид</button>
+        <div class="ctrl map-toggle">
+            <button class="tbtn active" id="btn-sat" data-type="sat">🛰️ Спутник</button>
+            <button class="tbtn" id="btn-hyb" data-type="hyb">🗺️ Гибрид</button>
         </div>
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-dot user"></div>
-                <span>Вы здесь</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-dot point"></div>
-                <span>Точки</span>
-            </div>
+        <div class="ctrl legend">
+            <div class="legend-item"><div class="dot u"></div><span>Вы здесь</span></div>
+            <div class="legend-item"><div class="dot p"></div><span>Точки</span></div>
         </div>
-        <button class="debug-btn" id="btn-debug">🔄 Сбросить точки</button>
+        <button class="ctrl debug" id="btn-debug">🔄 Сбросить точки</button>
     </div>
 
-    <!-- BOTTOM SHEET -->
-    <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet" id="sheet">
         <button class="sheet-close" id="sheet-close">×</button>
         <div class="sheet-handle"></div>
         <div class="sheet-title">📍 Точка <span id="sheet-num">#1</span></div>
-        <div class="sheet-row">
-            <span class="sheet-label">Расстояние</span>
-            <span class="sheet-value distance" id="sheet-dist">-</span>
-        </div>
-        <div class="sheet-row">
-            <span class="sheet-label">Широта</span>
-            <span class="sheet-value" id="sheet-lat">-</span>
-        </div>
-        <div class="sheet-row">
-            <span class="sheet-label">Долгота</span>
-            <span class="sheet-value" id="sheet-lng">-</span>
-        </div>
-        <div class="sheet-row">
-            <span class="sheet-label">Точность</span>
-            <span class="sheet-value" id="sheet-acc">-</span>
-        </div>
+        <div class="sheet-row"><span class="sheet-label">Расстояние</span><span class="sheet-value dist" id="sheet-dist">-</span></div>
+        <div class="sheet-row"><span class="sheet-label">Широта</span><span class="sheet-value" id="sheet-lat">-</span></div>
+        <div class="sheet-row"><span class="sheet-label">Долгота</span><span class="sheet-value" id="sheet-lng">-</span></div>
+        <div class="sheet-row"><span class="sheet-label">Точность</span><span class="sheet-value" id="sheet-acc">-</span></div>
     </div>
 
     <script>
-        // ===================== CONSTANTS =====================
-        const MIN_DIST = 700;
-        const MAX_DIST = 3000;
-        const POINTS_COUNT = 3;
-        const STORAGE_KEY = 'geo_cash_points_v2';
-        const USER_STORAGE_KEY = 'geo_cash_user_loc';
+        const MIN_DIST = 700, MAX_DIST = 3000, POINTS_COUNT = 3;
+        const STORAGE_KEY = 'geo_cash_v3';
+        let tg = null, map = null, userLoc = null, points = [], markers = [];
+        let satLayer = null, hybLayer = null;
 
-        // ===================== STATE =====================
-        let tg = null;
-        let map = null;
-        let userLoc = null;
-        let points = [];
-        let markers = [];
-        let useNativeLocation = true;
-        let currentLayer = null;
-        let hybridLayer = null;
-        let satLayer = null;
-
-        // ===================== UTILS =====================
-        function log(...args) {
-            console.log('[GeoCash]', ...args);
-        }
+        const $ = id => document.getElementById(id);
+        const log = (...a) => console.log('[GeoCash]', ...a);
+        const dist = (lat1, lng1, lat2, lng2) => {
+            const R = 6371000, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        };
+        const fmtDist = m => m < 1000 ? Math.round(m) + ' м' : (m / 1000).toFixed(2) + ' км';
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            const el = document.getElementById(id);
-            if (el) el.classList.remove('hidden');
+            $(id)?.classList.remove('hidden');
         }
+        function setLoad(t, s) { $('.loading-text').textContent = t; $('loading-sub').textContent = s || ''; showScreen('screen-loading'); }
+        function showErr(t, d) { $('err-title').textContent = t; $('err-desc').textContent = d; showScreen('screen-error'); }
 
-        function setLoading(text, sub) {
-            document.querySelector('.loading-text').textContent = text;
-            document.getElementById('loading-sub').textContent = sub || '';
-            showScreen('screen-loading');
+        function savePts(pts) { localStorage.setItem(STORAGE_KEY, JSON.stringify({ points: pts, at: Date.now() })); }
+        function loadPts() {
+            try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY)); return d?.points?.length === POINTS_COUNT ? d.points : null; }
+            catch { return null; }
         }
+        function clearPts() { localStorage.removeItem(STORAGE_KEY); points = []; markers = []; }
 
-        function showError(title, desc) {
-            document.getElementById('error-title').textContent = title;
-            document.getElementById('error-desc').textContent = desc;
-            showScreen('screen-error');
+        function genPt(cLat, cLng, minD, maxD) {
+            const d = minD + Math.random() * (maxD - minD), a = Math.random() * 2 * Math.PI;
+            return { lat: cLat + (d * Math.cos(a)) / 111320, lng: cLng + (d * Math.sin(a)) / (111320 * Math.cos(cLat * Math.PI / 180)) };
         }
-
-        function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function formatDist(m) {
-            if (m < 1000) return Math.round(m) + ' м';
-            return (m / 1000).toFixed(2) + ' км';
-        }
-
-        // ===================== STORAGE =====================
-        function savePoints(pts) {
-            const data = { points: pts, createdAt: Date.now() };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            log('Points saved');
-        }
-
-        function loadPoints() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) return null;
-                const data = JSON.parse(raw);
-                if (data && data.points && data.points.length === POINTS_COUNT) {
-                    return data.points;
-                }
-            } catch (e) { log('Load error:', e); }
-            return null;
-        }
-
-        function clearPoints() {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(USER_STORAGE_KEY);
-            points = [];
-            markers = [];
-            log('Points cleared');
-        }
-
-        // ===================== POINT GENERATION =====================
-        function generateRandomPoint(centerLat, centerLng, minD, maxD) {
-            const dist = minD + Math.random() * (maxD - minD);
-            const angle = Math.random() * 2 * Math.PI;
-            const latOffset = (dist * Math.cos(angle)) / 111320;
-            const lngOffset = (dist * Math.sin(angle)) / (111320 * Math.cos(centerLat * Math.PI / 180));
-            return { lat: centerLat + latOffset, lng: centerLng + lngOffset, distance: dist };
-        }
-
-        function generatePoints(centerLat, centerLng) {
-            const generated = [];
-            let attempts = 0;
-            while (generated.length < POINTS_COUNT && attempts < 2000) {
-                const p = generateRandomPoint(centerLat, centerLng, MIN_DIST, MAX_DIST);
-                let tooClose = false;
-                for (const ex of generated) {
-                    if (getDistance(p.lat, p.lng, ex.lat, ex.lng) < 200) { tooClose = true; break; }
-                }
-                if (!tooClose) generated.push(p);
-                attempts++;
+        function genPts(cLat, cLng) {
+            const g = []; let n = 0;
+            while (g.length < POINTS_COUNT && n < 2000) {
+                const p = genPt(cLat, cLng, MIN_DIST, MAX_DIST);
+                if (!g.some(e => dist(p.lat, p.lng, e.lat, e.lng) < 200)) g.push(p);
+                n++;
             }
-            return generated;
+            return g;
         }
 
-        // ===================== MAP LAYERS =====================
-        function createSatelliteLayer() {
-            // ESRI World Imagery — спутниковые снимки
-            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri',
-                maxZoom: 19
-            });
+        function createSat() {
+            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri', maxZoom: 19 });
+        }
+        function createHyb() {
+            return L.layerGroup([
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri', maxZoom: 19 }),
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { attribution: 'Labels &copy; Esri', maxZoom: 19 })
+            ]);
+        }
+        function switchType(type) {
+            document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+            $(type === 'sat' ? 'btn-sat' : 'btn-hyb').classList.add('active');
+            if (type === 'sat') { if (hybLayer) map.removeLayer(hybLayer); satLayer.addTo(map); }
+            else { if (satLayer) map.removeLayer(satLayer); hybLayer.addTo(map); }
         }
 
-        function createHybridLayer() {
-            // Гибрид: спутник + подписи
-            const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri',
-                maxZoom: 19
-            });
-            const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Labels &copy; Esri',
-                maxZoom: 19
-            });
-            return L.layerGroup([sat, labels]);
-        }
-
-        function switchMapType(type) {
-            document.querySelectorAll('.map-toggle-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(type === 'sat' ? 'btn-sat' : 'btn-hyb').classList.add('active');
-
-            if (type === 'sat') {
-                if (hybridLayer) map.removeLayer(hybridLayer);
-                if (satLayer) {
-                    satLayer.addTo(map);
-                    currentLayer = satLayer;
-                }
-            } else {
-                if (satLayer) map.removeLayer(satLayer);
-                if (hybridLayer) {
-                    hybridLayer.addTo(map);
-                    currentLayer = hybridLayer;
-                }
-            }
-        }
-
-        // ===================== MAP =====================
-        function initMap(lat, lng, accuracy) {
-            userLoc = { lat, lng, accuracy };
-            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userLoc));
-
-            document.getElementById('map-container').classList.add('visible');
-
+        function initMap(lat, lng, acc) {
+            userLoc = { lat, lng, acc };
+            $('map-wrap').classList.add('visible');
             map = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
 
-            // Спутник по умолчанию
-            satLayer = createSatelliteLayer();
-            hybridLayer = createHybridLayer();
+            satLayer = createSat(); hybLayer = createHyb();
             satLayer.addTo(map);
-            currentLayer = satLayer;
 
-            // User marker — яркий, чтобы был виден на спутнике
-            const userIcon = L.divIcon({
-                className: 'user-marker',
-                html: `<div style="width:24px;height:24px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);animation:pulse 2s infinite;"></div><style>@keyframes pulse{0%{box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);}50%{box-shadow:0 0 0 12px rgba(10,132,255,0.1),0 2px 12px rgba(0,0,0,0.6);}100%{box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);}}</style>`,
+            // User marker
+            const uIcon = L.divIcon({
+                className: 'u-marker',
+                html: `<div style="width:24px;height:24px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);animation:pulse 2s infinite;"></div><style>@keyframes pulse{0%,100%{box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);}50%{box-shadow:0 0 0 12px rgba(10,132,255,0.1),0 2px 12px rgba(0,0,0,0.6);}}</style>`,
                 iconSize: [24, 24], iconAnchor: [12, 12]
             });
-            L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('<b>📍 Вы здесь</b>');
+            L.marker([lat, lng], { icon: uIcon }).addTo(map).bindPopup('<b>📍 Вы здесь</b>');
 
-            // Accuracy circle
-            if (accuracy) {
-                L.circle([lat, lng], { radius: accuracy, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.15, weight: 1.5 }).addTo(map);
-            }
+            // Accuracy circle (subtle)
+            if (acc) L.circle([lat, lng], { radius: acc, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.1, weight: 1 }).addTo(map);
 
-            // Zone circles — яркие, видимые на спутнике
-            L.circle([lat, lng], {
-                radius: MAX_DIST,
-                color: '#0a84ff',
-                fillColor: '#0a84ff',
-                fillOpacity: 0.08,
-                weight: 2,
-                dashArray: '8,8'
-            }).addTo(map);
+            // Points
+            const saved = loadPts();
+            points = saved || genPts(lat, lng);
+            if (!saved) savePts(points);
 
-            L.circle([lat, lng], {
-                radius: MIN_DIST,
-                color: '#ff3b30',
-                fillColor: '#ff3b30',
-                fillOpacity: 0.12,
-                weight: 2,
-                dashArray: '5,5'
-            }).addTo(map);
-
-            // Load or generate points
-            const saved = loadPoints();
-            if (saved) {
-                points = saved;
-                log('Loaded saved points');
-            } else {
-                points = generatePoints(lat, lng);
-                savePoints(points);
-                log('Generated new points');
-            }
-
-            // Render points — яркие маркеры для спутника
-            const allMarkers = [];
+            const allM = [];
             points.forEach((p, i) => {
                 const icon = L.divIcon({
-                    className: 'point-marker',
-                    html: `<div style="width:40px;height:40px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(255,59,48,0.4),0 2px 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${i+1}</div>`,
+                    className: 'p-marker',
+                    html: `<div style="width:40px;height:40px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(255,59,48,0.4),0 2px 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${i + 1}</div>`,
                     iconSize: [40, 40], iconAnchor: [20, 20]
                 });
                 const m = L.marker([p.lat, p.lng], { icon }).addTo(map);
                 m.on('click', () => openSheet(p, i));
-                markers.push(m);
-                allMarkers.push(m);
+                markers.push(m); allM.push(m);
             });
 
-            // Fit bounds
-            const group = L.featureGroup([...allMarkers]);
+            const group = L.featureGroup(allM);
             map.fitBounds(group.getBounds().pad(0.25));
-
-            // Show debug button
-            document.getElementById('btn-debug').classList.add('visible');
+            $('btn-debug').classList.add('visible');
         }
 
-        // ===================== BOTTOM SHEET =====================
-        function openSheet(point, index) {
-            const dist = getDistance(userLoc.lat, userLoc.lng, point.lat, point.lng);
-            document.getElementById('sheet-num').textContent = '#' + (index + 1);
-            document.getElementById('sheet-dist').textContent = formatDist(dist);
-            document.getElementById('sheet-lat').textContent = point.lat.toFixed(6);
-            document.getElementById('sheet-lng').textContent = point.lng.toFixed(6);
-            document.getElementById('sheet-acc').textContent = userLoc.accuracy ? '±' + Math.round(userLoc.accuracy) + ' м' : '—';
-            document.getElementById('bottom-sheet').classList.add('visible');
+        function openSheet(p, i) {
+            const d = dist(userLoc.lat, userLoc.lng, p.lat, p.lng);
+            $('sheet-num').textContent = '#' + (i + 1);
+            $('sheet-dist').textContent = fmtDist(d);
+            $('sheet-lat').textContent = p.lat.toFixed(6);
+            $('sheet-lng').textContent = p.lng.toFixed(6);
+            $('sheet-acc').textContent = userLoc.acc ? '±' + Math.round(userLoc.acc) + ' м' : '—';
+            $('sheet').classList.add('visible');
         }
+        function closeSheet() { $('sheet').classList.remove('visible'); }
 
-        function closeSheet() {
-            document.getElementById('bottom-sheet').classList.remove('visible');
-        }
-
-        // ===================== LOCATION METHODS =====================
-        async function requestTelegramLocation() {
-            return new Promise((resolve, reject) => {
-                if (!tg || !tg.LocationManager) {
-                    reject(new Error('LocationManager not available'));
-                    return;
-                }
-                if (tg.LocationManager.isSupported && !tg.LocationManager.isSupported()) {
-                    reject(new Error('LocationManager not supported'));
-                    return;
-                }
-                log('Using Telegram LocationManager');
-
-                if (tg.LocationManager.requestLocation) {
-                    tg.LocationManager.requestLocation((loc) => {
-                        if (loc && loc.latitude !== undefined) {
-                            log('Got location via requestLocation:', loc);
-                            resolve({ lat: loc.latitude, lng: loc.longitude, accuracy: loc.horizontal_accuracy });
-                        } else {
-                            reject(new Error('Empty location from requestLocation'));
-                        }
-                    });
-                    return;
-                }
-                if (tg.LocationManager.getLocation) {
-                    tg.LocationManager.getLocation((loc) => {
-                        if (loc && loc.latitude !== undefined) {
-                            log('Got location via getLocation:', loc);
-                            resolve({ lat: loc.latitude, lng: loc.longitude, accuracy: loc.horizontal_accuracy });
-                        } else {
-                            reject(new Error('Empty location from getLocation'));
-                        }
-                    });
-                    return;
-                }
-                reject(new Error('No location method available'));
+        async function reqTgLoc() {
+            return new Promise((res, rej) => {
+                if (!tg?.LocationManager) return rej(new Error('No LocationManager'));
+                if (tg.LocationManager.isSupported && !tg.LocationManager.isSupported()) return rej(new Error('Not supported'));
+                const cb = loc => loc?.latitude !== undefined ? res({ lat: loc.latitude, lng: loc.longitude, acc: loc.horizontal_accuracy }) : rej(new Error('Empty'));
+                if (tg.LocationManager.requestLocation) { log('Using requestLocation'); tg.LocationManager.requestLocation(cb); }
+                else if (tg.LocationManager.getLocation) { log('Using getLocation'); tg.LocationManager.getLocation(cb); }
+                else rej(new Error('No method'));
             });
         }
-
-        function requestBrowserLocation() {
-            return new Promise((resolve, reject) => {
-                if (!navigator.geolocation) {
-                    reject(new Error('Browser geolocation not supported'));
-                    return;
-                }
-                log('Using browser geolocation');
+        function reqBrowserLoc() {
+            return new Promise((res, rej) => {
+                if (!navigator.geolocation) return rej(new Error('No geolocation'));
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        log('Browser location:', pos.coords);
-                        resolve({
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude,
-                            accuracy: pos.coords.accuracy
-                        });
-                    },
-                    (err) => {
-                        let msg = 'Не удалось получить геолокацию';
-                        if (err.code === 1) msg = 'Доступ к геолокации запрещён. Разрешите доступ в настройках устройства.';
-                        else if (err.code === 2) msg = 'Геолокация недоступна. Проверьте GPS.';
-                        else if (err.code === 3) msg = 'Превышено время ожидания. Попробуйте снова.';
-                        reject(new Error(msg));
+                    pos => res({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy }),
+                    err => {
+                        const msgs = ['Доступ запрещён. Разрешите в настройках.', 'Геолокация недоступна.', 'Превышено время ожидания.'];
+                        rej(new Error(msgs[err.code - 1] || 'Ошибка геолокации'));
                     },
                     { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
                 );
             });
         }
+        async function getLoc() {
+            if (tg?.LocationManager) try { return await reqTgLoc(); } catch (e) { log('TG fail:', e.message); }
+            return await reqBrowserLoc();
+        }
 
-        async function getLocation() {
-            const errors = [];
-            if (useNativeLocation && tg && tg.LocationManager) {
-                try {
-                    return await requestTelegramLocation();
-                } catch (e) {
-                    log('Telegram location failed:', e.message);
-                    errors.push('Telegram: ' + e.message);
-                }
-            }
+        async function start() {
+            setLoad('Запрашиваем геолокацию...', 'Это может занять несколько секунд');
             try {
-                return await requestBrowserLocation();
+                const loc = await getLoc();
+                setTimeout(() => { initMap(loc.lat, loc.lng, loc.acc); $('screen-loading').classList.add('hidden'); }, 300);
             } catch (e) {
-                log('Browser location failed:', e.message);
-                errors.push('Browser: ' + e.message);
-                throw new Error(errors.join(' | '));
+                log('Loc error:', e.message);
+                if (e.message.includes('запрещён') || e.message.includes('permission')) showScreen('screen-perm');
+                else showErr('Не удалось получить геолокацию', e.message);
             }
         }
 
-        // ===================== MAIN FLOW =====================
-        async function startApp() {
-            setLoading('Запрашиваем геолокацию...', 'Это может занять несколько секунд');
-            try {
-                const loc = await getLocation();
-                showScreen('screen-loading');
-                setTimeout(() => {
-                    initMap(loc.lat, loc.lng, loc.accuracy);
-                    showScreen('screen-loading');
-                    document.getElementById('screen-loading').classList.add('hidden');
-                }, 300);
-            } catch (e) {
-                log('Location error:', e.message);
-                if (e.message.includes('запрещён') || e.message.includes('permission') || e.message.includes('denied')) {
-                    showScreen('screen-perm');
-                } else {
-                    showError('Не удалось получить геолокацию', e.message);
-                }
-            }
-        }
-
-        // ===================== INIT =====================
         function init() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                tg.ready();
-                tg.expand();
-                log('Telegram WebApp initialized, version:', tg.version);
-                log('LocationManager available:', !!tg.LocationManager);
-                if (tg.LocationManager) {
-                    log('LocationManager methods:', Object.keys(tg.LocationManager));
-                }
-            } else {
-                log('Running outside Telegram');
-                useNativeLocation = false;
+            if (window.Telegram?.WebApp) {
+                tg = window.Telegram.WebApp; tg.ready(); tg.expand();
+                log('TG ready, ver:', tg.version, 'LM:', !!tg.LocationManager);
             }
-
-            document.getElementById('btn-request-loc').addEventListener('click', () => {
-                useNativeLocation = true;
-                startApp();
-            });
-            document.getElementById('btn-use-browser').addEventListener('click', () => {
-                useNativeLocation = false;
-                startApp();
-            });
-            document.getElementById('btn-retry').addEventListener('click', startApp);
-            document.getElementById('btn-reset-points').addEventListener('click', () => {
-                clearPoints();
-                showError('Точки сброшены', 'При следующем запуске будут созданы новые точки. Перезапустите приложение.');
-            });
-            document.getElementById('sheet-close').addEventListener('click', closeSheet);
-            document.getElementById('btn-debug').addEventListener('click', () => {
-                clearPoints();
-                location.reload();
-            });
-            document.getElementById('map').addEventListener('click', closeSheet);
-
-            // Map type toggle
-            document.getElementById('btn-sat').addEventListener('click', () => switchMapType('sat'));
-            document.getElementById('btn-hyb').addEventListener('click', () => switchMapType('hyb'));
-
-            startApp();
+            $('btn-request-loc').onclick = () => start();
+            $('btn-use-browser').onclick = () => start();
+            $('btn-retry').onclick = () => start();
+            $('btn-reset').onclick = () => { clearPts(); showErr('Точки сброшены', 'Перезапустите приложение'); };
+            $('sheet-close').onclick = closeSheet;
+            $('btn-debug').onclick = () => { clearPts(); location.reload(); };
+            $('map').onclick = closeSheet;
+            $('btn-sat').onclick = () => switchType('sat');
+            $('btn-hyb').onclick = () => switchType('hyb');
+            start();
         }
-
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
