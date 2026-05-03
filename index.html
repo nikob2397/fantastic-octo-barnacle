@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Satellite Map</title>
+    <title>Map App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -393,10 +393,10 @@
                 }
             }
 
-            // Generate new points
+            // Generate new points (300m - 1500m)
             randomPoints = [];
             for (let i = 0; i < 3; i++) {
-                randomPoints.push(generateRandomPoint(userLat, userLng, 700, 2500));
+                randomPoints.push(generateRandomPoint(userLat, userLng, 300, 1500));
             }
 
             // Save to localStorage
@@ -442,9 +442,9 @@
                 attributionControl: true
             });
 
-            // Add satellite tile layer (Esri)
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '&copy; Esri',
+            // Add standard (digital/street) tile layer (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 18
             }).addTo(map);
 
