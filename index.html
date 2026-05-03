@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Telegram WebApp - Геолокация</title>
+    <title>Geo Map App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,9 +15,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #17212b;
-            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
             height: 100vh;
             overflow: hidden;
             display: flex;
@@ -30,44 +30,32 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #17212b;
+            background: #1a1a2e;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            transition: opacity 0.5s ease;
-        }
-
-        #loading-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
+            transition: opacity 0.5s;
         }
 
         .spinner {
             width: 50px;
             height: 50px;
-            border: 4px solid #2b5278;
-            border-top-color: #5ea3e8;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #00d4ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        .loading-text {
-            margin-top: 20px;
+        #loading-screen p {
+            color: #aaa;
             font-size: 16px;
-            color: #8a9bb0;
-        }
-
-        .error-message {
-            color: #e74c3c;
-            text-align: center;
-            padding: 20px;
-            display: none;
         }
 
         #map-container {
@@ -82,319 +70,297 @@
         #map {
             width: 100%;
             height: 100%;
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 24px;
+            max-width: 600px;
+            max-height: 600px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.1);
         }
 
         .leaflet-container {
-            background: #1a1a2e !important;
+            background: #0a0a1a !important;
         }
 
-        /* Стили для точек */
-        .random-point-marker {
-            background: #ff6b6b;
-            border: 3px solid #ffffff;
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .random-point-marker:hover {
-            transform: scale(1.2);
-        }
-
-        .random-point-marker.pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(255, 107, 107, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
-        }
-
-        /* Попап */
-        .custom-popup .leaflet-popup-content-wrapper {
-            background: #242f3d;
-            border-radius: 16px;
-            color: #ffffff;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            border: 1px solid #3a4a5c;
-        }
-
-        .custom-popup .leaflet-popup-tip {
-            background: #242f3d;
-        }
-
-        .custom-popup .leaflet-popup-content {
-            margin: 12px 16px;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .popup-title {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 8px;
-            color: #5ea3e8;
-        }
-
-        .popup-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            border-bottom: 1px solid #3a4a5c;
-        }
-
-        .popup-row:last-child {
-            border-bottom: none;
-        }
-
-        .popup-label {
-            color: #8a9bb0;
-            font-size: 12px;
-        }
-
-        .popup-value {
-            font-weight: 500;
-            color: #ffffff;
-        }
-
-        /* Кнопка моей локации */
-        .locate-btn {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 50px;
-            height: 50px;
-            background: #5ea3e8;
-            border: none;
-            border-radius: 50%;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(94, 163, 232, 0.4);
+        #info-panel {
+            position: fixed;
+            bottom: -200px;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            transition: bottom 0.3s ease;
             z-index: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease;
         }
 
-        .locate-btn:hover {
-            transform: scale(1.1);
+        #info-panel.active {
+            bottom: 0;
         }
 
-        /* Иконка пользователя */
-        .user-marker-icon {
-            background: #5ea3e8;
-            border: 4px solid #ffffff;
+        #info-panel h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        #info-panel p {
+            color: #ccc;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        #info-panel .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .user-marker {
+            background: #00d4ff;
+            border: 3px solid #fff;
             border-radius: 50%;
-            box-shadow: 0 2px 12px rgba(94, 163, 232, 0.6);
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 0 10px rgba(0,212,255,0.5);
         }
 
-        .user-marker-icon::after {
+        .user-marker::after {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0,212,255,0.3);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        .point-marker {
+            background: #ff6b6b;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 0 15px rgba(255,107,107,0.5);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .point-marker:hover {
+            transform: scale(1.2);
+        }
+
+        #error-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(94, 163, 232, 0.3);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            animation: user-pulse 2s infinite;
+            background: #1a1a2e;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            padding: 20px;
+            text-align: center;
         }
 
-        @keyframes user-pulse {
-            0% { width: 100%; height: 100%; opacity: 1; }
-            100% { width: 300%; height: 300%; opacity: 0; }
-        }
-
-        /* Инфо-панель */
-        #info-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(36, 47, 61, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 16px;
-            z-index: 500;
-            border: 1px solid #3a4a5c;
-            display: none;
-        }
-
-        #info-panel.visible {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .info-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #5ea3e8;
-            margin-bottom: 8px;
-        }
-
-        .info-coords {
-            font-size: 12px;
-            color: #8a9bb0;
-            font-family: 'Courier New', monospace;
-        }
-
-        .info-distance {
-            font-size: 24px;
-            font-weight: 700;
+        #error-screen h2 {
             color: #ff6b6b;
-            margin-top: 4px;
+            margin-bottom: 15px;
         }
 
-        .close-info {
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            background: none;
+        #error-screen p {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .retry-btn {
+            background: #00d4ff;
+            color: #1a1a2e;
             border: none;
-            color: #8a9bb0;
-            font-size: 20px;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            transition: background 0.2s;
         }
 
-        /* Круг радиуса */
-        .radius-circle {
-            fill: rgba(94, 163, 232, 0.05);
-            stroke: #5ea3e8;
-            stroke-width: 1;
-            stroke-dasharray: 8, 4;
+        .retry-btn:hover {
+            background: #00a8cc;
         }
 
-        .min-radius-circle {
-            fill: rgba(255, 107, 107, 0.03);
-            stroke: #ff6b6b;
-            stroke-width: 1;
-            stroke-dasharray: 4, 4;
+        .distance-badge {
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
     <div id="loading-screen">
         <div class="spinner"></div>
-        <div class="loading-text">Запрашиваем геолокацию...</div>
-        <div class="error-message" id="error-message"></div>
+        <p>Запрашиваем геолокацию...</p>
+    </div>
+
+    <div id="error-screen">
+        <h2>⚠️ Ошибка доступа</h2>
+        <p id="error-message">Не удалось получить геолокацию</p>
+        <button class="retry-btn" onclick="requestLocation()">Повторить</button>
     </div>
 
     <div id="map-container">
         <div id="map"></div>
-        <button class="locate-btn" id="locate-btn" title="Моё местоположение">📍</button>
+    </div>
 
-        <div id="info-panel">
-            <button class="close-info" id="close-info">×</button>
-            <div class="info-title">📍 Точка <span id="point-number"></span></div>
-            <div class="info-coords">Широта: <span id="point-lat"></span></div>
-            <div class="info-coords">Долгота: <span id="point-lng"></span></div>
-            <div class="info-distance"><span id="point-distance"></span></div>
-        </div>
+    <div id="info-panel">
+        <button class="close-btn" onclick="closeInfoPanel()">×</button>
+        <h3>📍 Точка <span id="point-number"></span></h3>
+        <p><strong>Расстояние:</strong> <span id="point-distance"></span></p>
+        <p><strong>Широта:</strong> <span id="point-lat"></span></p>
+        <p><strong>Долгота:</strong> <span id="point-lng"></span></p>
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
         let tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // Цвета в стиле Telegram
-        tg.setHeaderColor('#17212b');
-        tg.setBackgroundColor('#17212b');
+        let map;
+        let userLat, userLng;
+        let randomPoints = [];
+        let markers = [];
 
         // Константы
-        const MAP_SIZE_KM = 6; // Размер карты 6x6 км
-        const MAX_RADIUS_KM = 2.5; // Макс. радиус точек
-        const MIN_RADIUS_KM = 0.7; // Мин. радиус точек (700м)
-        const POINTS_COUNT = 3; // Количество точек
+        const MAP_SIZE_KM = 6; // 6x6 км
+        const POINT_MIN_DIST_KM = 0.7; // минимум 700м
+        const POINT_MAX_DIST_KM = 2.5; // максимум 2.5км
+        const NUM_POINTS = 3;
 
-        let map;
-        let userMarker;
-        let randomMarkers = [];
-        let userPosition = null;
-        let circlesLayer;
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            requestLocation();
+        });
 
-        // Инициализация карты
-        function initMap(lat, lng) {
-            userPosition = { lat, lng };
+        function requestLocation() {
+            document.getElementById('loading-screen').style.display = 'flex';
+            document.getElementById('error-screen').style.display = 'none';
 
+            if (!navigator.geolocation) {
+                showError('Геолокация не поддерживается вашим устройством');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                onLocationSuccess,
+                onLocationError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function onLocationSuccess(position) {
+            userLat = position.coords.latitude;
+            userLng = position.coords.longitude;
+
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+            }, 500);
+
+            initMap();
+        }
+
+        function onLocationError(error) {
+            let message = 'Не удалось получить геолокацию';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Информация о местоположении недоступна.';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Время ожидания геолокации истекло.';
+                    break;
+            }
+            showError(message);
+        }
+
+        function showError(message) {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('error-screen').style.display = 'flex';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        function initMap() {
             // Создаём карту
             map = L.map('map', {
                 zoomControl: false,
-                attributionControl: false,
-                minZoom: 10,
-                maxZoom: 18
-            }).setView([lat, lng], 14);
+                attributionControl: false
+            });
 
-            // Спутниковый слой (Esri World Imagery)
+            // Спутниковая подложка (Esri World Imagery)
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Esri',
-                maxZoom: 18
+                maxZoom: 19,
+                attribution: 'Esri'
             }).addTo(map);
 
             // Добавляем подписи
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 18,
-                opacity: 0.7
+                maxZoom: 19,
+                attribution: 'Esri'
             }).addTo(map);
 
             // Маркер пользователя
             const userIcon = L.divIcon({
-                className: 'user-marker-icon',
+                className: 'user-marker',
                 iconSize: [20, 20],
                 iconAnchor: [10, 10]
             });
 
-            userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+            L.marker([userLat, userLng], { icon: userIcon }).addTo(map);
 
-            // Ограничиваем границы карты (квадрат 6x6 км)
-            const bounds = calculateBounds(lat, lng, MAP_SIZE_KM);
-            map.setMaxBounds(bounds);
+            // Устанавливаем вид на область 6x6 км
+            const bounds = getBoundsFromCenter(userLat, userLng, MAP_SIZE_KM);
             map.fitBounds(bounds, { padding: [20, 20] });
 
-            // Рисуем круги радиуса
-            circlesLayer = L.layerGroup().addTo(map);
-
-            // Круг макс. радиуса (2.5 км)
-            L.circle([lat, lng], {
-                radius: MAX_RADIUS_KM * 1000,
-                className: 'radius-circle',
-                fillOpacity: 0.1
-            }).addTo(circlesLayer);
-
-            // Круг мин. радиуса (700 м)
-            L.circle([lat, lng], {
-                radius: MIN_RADIUS_KM * 1000,
-                className: 'min-radius-circle',
-                fillOpacity: 0.05
-            }).addTo(circlesLayer);
-
-            // Загружаем или создаём случайные точки
-            loadOrCreatePoints(lat, lng);
-
-            // Скрываем загрузку
-            document.getElementById('loading-screen').classList.add('hidden');
+            // Загружаем или создаём точки
+            loadOrCreatePoints();
         }
 
-        // Расчёт границ квадрата
-        function calculateBounds(lat, lng, sizeKm) {
-            // Приблизительно: 1 градус широты ≈ 111 км, 1 градус долготы ≈ 111 * cos(широта) км
+        function getBoundsFromCenter(lat, lng, sizeKm) {
+            // Приблизительно: 1 град широты ~ 111 км
+            // 1 град долготы ~ 111 * cos(широта) км
             const latDelta = sizeKm / 2 / 111;
             const lngDelta = sizeKm / 2 / (111 * Math.cos(lat * Math.PI / 180));
 
@@ -404,26 +370,94 @@
             );
         }
 
-        // Генерация случайной точки в кольце
-        function generateRandomPoint(centerLat, centerLng, minRadiusKm, maxRadiusKm) {
-            // Случайный угол
-            const angle = Math.random() * 2 * Math.PI;
-            // Случайный радиус (равномерное распределение по площади)
-            const r = Math.sqrt(Math.random() * (maxRadiusKm**2 - minRadiusKm**2) + minRadiusKm**2);
+        function loadOrCreatePoints() {
+            const saved = localStorage.getItem('randomPoints');
+            const savedCenter = localStorage.getItem('centerLocation');
 
-            // Переводим в градусы
-            const latDelta = (r / 111) * Math.cos(angle);
-            const lngDelta = (r / (111 * Math.cos(centerLat * Math.PI / 180))) * Math.sin(angle);
+            // Проверяем, есть ли сохранённые точки и совпадает ли центр (с точностью ~100м)
+            if (saved && savedCenter) {
+                const center = JSON.parse(savedCenter);
+                const dist = getDistance(userLat, userLng, center.lat, center.lng);
+
+                if (dist < 0.1) { // менее 100м от предыдущей позиции
+                    randomPoints = JSON.parse(saved);
+                    displayPoints();
+                    return;
+                }
+            }
+
+            // Создаём новые точки
+            createRandomPoints();
+        }
+
+        function createRandomPoints() {
+            randomPoints = [];
+            let attempts = 0;
+            const maxAttempts = 1000;
+
+            while (randomPoints.length < NUM_POINTS && attempts < maxAttempts) {
+                attempts++;
+
+                // Случайное расстояние между min и max
+                const dist = POINT_MIN_DIST_KM + Math.random() * (POINT_MAX_DIST_KM - POINT_MIN_DIST_KM);
+                // Случайный угол
+                const angle = Math.random() * 2 * Math.PI;
+
+                // Переводим в координаты
+                const point = getPointAtDistance(userLat, userLng, dist, angle);
+
+                // Проверяем, что точка в пределах карты (3 км от центра = 6x6)
+                const distFromCenter = getDistance(userLat, userLng, point.lat, point.lng);
+                if (distFromCenter > MAP_SIZE_KM / 2) continue;
+
+                // Проверяем минимальное расстояние между точками
+                let tooClose = false;
+                for (let p of randomPoints) {
+                    if (getDistance(p.lat, p.lng, point.lat, point.lng) < 0.3) { // мин 300м между точками
+                        tooClose = true;
+                        break;
+                    }
+                }
+                if (tooClose) continue;
+
+                randomPoints.push({
+                    lat: point.lat,
+                    lng: point.lng,
+                    id: randomPoints.length + 1
+                });
+            }
+
+            // Сохраняем
+            localStorage.setItem('randomPoints', JSON.stringify(randomPoints));
+            localStorage.setItem('centerLocation', JSON.stringify({ lat: userLat, lng: userLng }));
+
+            displayPoints();
+        }
+
+        function getPointAtDistance(lat, lng, distKm, angleRad) {
+            // Переводим расстояние в градусы (приблизительно)
+            const R = 6371; // радиус Земли в км
+            const latRad = lat * Math.PI / 180;
+            const lngRad = lng * Math.PI / 180;
+
+            const newLatRad = Math.asin(
+                Math.sin(latRad) * Math.cos(distKm / R) +
+                Math.cos(latRad) * Math.sin(distKm / R) * Math.cos(angleRad)
+            );
+
+            const newLngRad = lngRad + Math.atan2(
+                Math.sin(angleRad) * Math.sin(distKm / R) * Math.cos(latRad),
+                Math.cos(distKm / R) - Math.sin(latRad) * Math.sin(newLatRad)
+            );
 
             return {
-                lat: centerLat + latDelta,
-                lng: centerLng + lngDelta
+                lat: newLatRad * 180 / Math.PI,
+                lng: newLngRad * 180 / Math.PI
             };
         }
 
-        // Вычисление расстояния (формула гаверсинусов)
-        function calculateDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371; // Радиус Земли в км
+        function getDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLng = (lng2 - lng1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -433,151 +467,55 @@
             return R * c;
         }
 
-        // Форматирование расстояния
-        function formatDistance(km) {
-            if (km < 1) {
-                return Math.round(km * 1000) + ' м';
-            }
-            return km.toFixed(2) + ' км';
-        }
+        function displayPoints() {
+            // Очищаем старые маркеры
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
 
-        // Загрузка или создание точек
-        function loadOrCreatePoints(lat, lng) {
-            const storageKey = `random_points_${lat.toFixed(4)}_${lng.toFixed(4)}`;
-            let points = [];
+            randomPoints.forEach((point, index) => {
+                const dist = getDistance(userLat, userLng, point.lat, point.lng);
 
-            // Пробуем загрузить из localStorage
-            try {
-                const saved = localStorage.getItem(storageKey);
-                if (saved) {
-                    points = JSON.parse(saved);
-                    console.log('Точки загружены из localStorage');
-                }
-            } catch (e) {
-                console.error('Ошибка чтения localStorage:', e);
-            }
-
-            // Если нет сохранённых точек — создаём новые
-            if (points.length === 0) {
-                for (let i = 0; i < POINTS_COUNT; i++) {
-                    const point = generateRandomPoint(lat, lng, MIN_RADIUS_KM, MAX_RADIUS_KM);
-                    points.push({
-                        id: i + 1,
-                        lat: point.lat,
-                        lng: point.lng,
-                        created: new Date().toISOString()
-                    });
-                }
-
-                // Сохраняем
-                try {
-                    localStorage.setItem(storageKey, JSON.stringify(points));
-                    console.log('Точки сохранены в localStorage');
-                } catch (e) {
-                    console.error('Ошибка записи localStorage:', e);
-                }
-            }
-
-            // Отображаем точки
-            displayPoints(points);
-        }
-
-        // Отображение точек на карте
-        function displayPoints(points) {
-            randomMarkers.forEach(m => map.removeLayer(m));
-            randomMarkers = [];
-
-            points.forEach((point, index) => {
-                const icon = L.divIcon({
-                    className: 'random-point-marker pulse',
+                const pointIcon = L.divIcon({
+                    className: 'point-marker',
+                    html: (index + 1).toString(),
                     iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                    html: `<div style="width:100%;height:100%;background:#ff6b6b;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(255,107,107,0.5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:12px;">${index + 1}</div>`
+                    iconAnchor: [12, 12]
                 });
 
-                const marker = L.marker([point.lat, point.lng], { icon }).addTo(map);
+                const marker = L.marker([point.lat, point.lng], { icon: pointIcon })
+                    .addTo(map)
+                    .on('click', () => showPointInfo(point, dist));
 
-                marker.on('click', () => {
-                    showPointInfo(point, index + 1);
+                markers.push(marker);
+
+                // Подпись с расстоянием
+                const distLabel = L.divIcon({
+                    className: 'distance-badge',
+                    html: dist.toFixed(2) + ' км',
+                    iconSize: [80, 20],
+                    iconAnchor: [40, -15]
                 });
 
-                randomMarkers.push(marker);
+                const labelMarker = L.marker([point.lat, point.lng], { icon: distLabel, interactive: false })
+                    .addTo(map);
+                markers.push(labelMarker);
             });
         }
 
-        // Показ информации о точке
-        function showPointInfo(point, number) {
-            const distance = calculateDistance(userPosition.lat, userPosition.lng, point.lat, point.lng);
-
-            document.getElementById('point-number').textContent = number;
+        function showPointInfo(point, dist) {
+            document.getElementById('point-number').textContent = point.id;
+            document.getElementById('point-distance').textContent = dist.toFixed(3) + ' км';
             document.getElementById('point-lat').textContent = point.lat.toFixed(6);
             document.getElementById('point-lng').textContent = point.lng.toFixed(6);
-            document.getElementById('point-distance').textContent = formatDistance(distance);
-
-            document.getElementById('info-panel').classList.add('visible');
-
-            // Центрируем карту на точке
-            map.panTo([point.lat, point.lng]);
+            document.getElementById('info-panel').classList.add('active');
         }
 
-        // Закрытие информации
-        document.getElementById('close-info').addEventListener('click', () => {
-            document.getElementById('info-panel').classList.remove('visible');
-        });
-
-        // Кнопка "Моё местоположение"
-        document.getElementById('locate-btn').addEventListener('click', () => {
-            if (userPosition) {
-                map.panTo([userPosition.lat, userPosition.lng]);
-            }
-        });
-
-        // Запрос геолокации
-        function requestLocation() {
-            if (!navigator.geolocation) {
-                showError('Геолокация не поддерживается вашим устройством');
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    initMap(latitude, longitude);
-                },
-                (error) => {
-                    let message = 'Не удалось получить геолокацию';
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            message = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках браузера.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            message = 'Информация о местоположении недоступна';
-                            break;
-                        case error.TIMEOUT:
-                            message = 'Время ожидания геолокации истекло';
-                            break;
-                    }
-                    showError(message);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 0
-                }
-            );
+        function closeInfoPanel() {
+            document.getElementById('info-panel').classList.remove('active');
         }
 
-        // Показ ошибки
-        function showError(message) {
-            const errorEl = document.getElementById('error-message');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.querySelector('.spinner').style.display = 'none';
-            document.querySelector('.loading-text').textContent = 'Ошибка';
-        }
-
-        // Запускаем
-        requestLocation();
+        // Закрытие панели по клику на карту
+        map && map.on('click', closeInfoPanel);
     </script>
 </body>
 </html>
