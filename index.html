@@ -20,9 +20,6 @@
             overflow: hidden;
             height: 100vh;
             width: 100vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         #loading-screen {
@@ -72,23 +69,27 @@
             margin-top: 8px;
         }
 
-        /* The map canvas: a square viewport that shows only a 6x6km portion */
-        #map-canvas {
-            position: relative;
-            width: min(100vw, 100vh);
-            height: min(100vw, 100vh);
-            max-width: 600px;
-            max-height: 600px;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+        /* Map fills entire screen */
+        #map {
+            width: 100vw;
+            height: 100vh;
+            background: #0d0d0d;
         }
 
-        /* The actual map fills the canvas and can be zoomed/panned freely WITHIN the 6x6km bounds */
-        #map {
-            width: 100%;
-            height: 100%;
-            background: #e5e5e5;
+        /* Clip the map to a square in the center */
+        .leaflet-container {
+            overflow: visible !important;
+        }
+
+        /* Dark overlay outside the square viewport */
+        #map-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 500;
         }
 
         .user-marker {
@@ -294,9 +295,7 @@
         <button class="retry-btn" onclick="initApp()">Попробовать снова</button>
     </div>
 
-    <div id="map-canvas">
-        <div id="map"></div>
-    </div>
+    <div id="map"></div>
 
     <div id="point-info">
         <div class="info-header">
@@ -337,10 +336,6 @@
 
         function toRad(deg) {
             return deg * Math.PI / 180;
-        }
-
-        function toDeg(rad) {
-            return rad * 180 / Math.PI;
         }
 
         // Haversine distance in meters
@@ -421,11 +416,11 @@
             const northEast = [userLat + latOffset, userLng + lngOffset];
             const bounds = L.latLngBounds(southWest, northEast);
 
-            // Create map centered on user, NO maxBounds - free zoom/pan!
+            // Create map filling entire screen
             map = L.map('map', {
                 center: [userLat, userLng],
                 zoom: 14,
-                minZoom: 13,
+                minZoom: 10,
                 maxZoom: 18,
                 attributionControl: true
             });
