@@ -157,13 +157,16 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--secondary-bg);
+            background: rgba(28, 28, 30, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-radius: 20px 20px 0 0;
             padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
             z-index: 200;
             transform: translateY(110%);
             transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
             max-height: 55vh;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
         .bottom-sheet.visible {
             transform: translateY(0);
@@ -228,13 +231,16 @@
             position: fixed;
             top: 12px;
             right: 12px;
-            background: var(--secondary-bg);
+            background: rgba(28, 28, 30, 0.85);
             padding: 10px 14px;
             border-radius: 12px;
             z-index: 100;
             font-size: 12px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .legend-item {
             display: flex;
@@ -251,15 +257,47 @@
         .legend-dot.user { background: var(--accent); }
         .legend-dot.point { background: var(--danger); }
 
+        /* Map type toggle */
+        .map-toggle {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 100;
+            display: flex;
+            gap: 4px;
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .map-toggle-btn {
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .map-toggle-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
         /* Debug panel */
         .debug-btn {
             position: fixed;
             bottom: 16px;
             left: 16px;
             z-index: 100;
-            background: var(--secondary-bg);
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(10px);
             color: var(--hint);
-            border: none;
+            border: 1px solid rgba(255,255,255,0.1);
             padding: 8px 14px;
             border-radius: 20px;
             font-size: 12px;
@@ -268,9 +306,22 @@
         }
         .debug-btn.visible { display: block; }
 
-        /* Leaflet overrides */
-        .leaflet-container {
-            background: #e5e3df !important;
+        /* Leaflet popup dark */
+        .leaflet-popup-content-wrapper {
+            background: rgba(28, 28, 30, 0.95) !important;
+            color: white !important;
+            border-radius: 12px !important;
+            backdrop-filter: blur(10px);
+        }
+        .leaflet-popup-tip {
+            background: rgba(28, 28, 30, 0.95) !important;
+        }
+        .leaflet-popup-content {
+            margin: 8px 12px !important;
+            font-size: 14px !important;
+        }
+        .leaflet-container a.leaflet-popup-close-button {
+            color: rgba(255,255,255,0.6) !important;
         }
     </style>
 </head>
@@ -304,6 +355,10 @@
     <!-- MAP -->
     <div id="map-container">
         <div id="map"></div>
+        <div class="map-toggle">
+            <button class="map-toggle-btn active" id="btn-sat" data-type="sat">🛰️ Спутник</button>
+            <button class="map-toggle-btn" id="btn-hyb" data-type="hyb">🗺️ Гибрид</button>
+        </div>
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-dot user"></div>
@@ -355,6 +410,9 @@
         let points = [];
         let markers = [];
         let useNativeLocation = true;
+        let currentLayer = null;
+        let hybridLayer = null;
+        let satLayer = null;
 
         // ===================== UTILS =====================
         function log(...args) {
@@ -443,6 +501,47 @@
             return generated;
         }
 
+        // ===================== MAP LAYERS =====================
+        function createSatelliteLayer() {
+            // ESRI World Imagery — спутниковые снимки
+            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19
+            });
+        }
+
+        function createHybridLayer() {
+            // Гибрид: спутник + подписи
+            const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19
+            });
+            const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Labels &copy; Esri',
+                maxZoom: 19
+            });
+            return L.layerGroup([sat, labels]);
+        }
+
+        function switchMapType(type) {
+            document.querySelectorAll('.map-toggle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(type === 'sat' ? 'btn-sat' : 'btn-hyb').classList.add('active');
+
+            if (type === 'sat') {
+                if (hybridLayer) map.removeLayer(hybridLayer);
+                if (satLayer) {
+                    satLayer.addTo(map);
+                    currentLayer = satLayer;
+                }
+            } else {
+                if (satLayer) map.removeLayer(satLayer);
+                if (hybridLayer) {
+                    hybridLayer.addTo(map);
+                    currentLayer = hybridLayer;
+                }
+            }
+        }
+
         // ===================== MAP =====================
         function initMap(lat, lng, accuracy) {
             userLoc = { lat, lng, accuracy };
@@ -450,46 +549,45 @@
 
             document.getElementById('map-container').classList.add('visible');
 
-            // Светлая карта + наклон как в навигаторе
-            map = L.map('map', {
-                zoomControl: false,
-                rotate: true
-            }).setView([lat, lng], 15);
+            map = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
 
-            // Устанавливаем наклон (tilt) и поворот как в навигаторе
-            // Leaflet не поддерживает 3D tilt из коробки, но можно через CSS transform
-            // Добавляем перспективу через CSS
-            const mapPane = document.querySelector('.leaflet-map-pane');
-            if (mapPane) {
-                mapPane.style.transform = 'perspective(1000px) rotateX(35deg) scale(1.1)';
-                mapPane.style.transformOrigin = 'center center';
-            }
+            // Спутник по умолчанию
+            satLayer = createSatelliteLayer();
+            hybridLayer = createHybridLayer();
+            satLayer.addTo(map);
+            currentLayer = satLayer;
 
-            // Светлые тайлы (стандартные OSM — светлые)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap',
-                maxZoom: 19
-            }).addTo(map);
-
-            // User marker (пульсирующий)
+            // User marker — яркий, чтобы был виден на спутнике
             const userIcon = L.divIcon({
                 className: 'user-marker',
-                html: `<div style="position:relative;width:24px;height:24px;">
-                    <div style="position:absolute;top:0;left:0;width:24px;height:24px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(10,132,255,0.25),0 2px 8px rgba(0,0,0,0.3);z-index:2;"></div>
-                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;background:rgba(10,132,255,0.15);border-radius:50%;animation:pulse 2s ease-out infinite;z-index:1;"></div>
-                </div>`,
+                html: `<div style="width:24px;height:24px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);animation:pulse 2s infinite;"></div><style>@keyframes pulse{0%{box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);}50%{box-shadow:0 0 0 12px rgba(10,132,255,0.1),0 2px 12px rgba(0,0,0,0.6);}100%{box-shadow:0 0 0 5px rgba(10,132,255,0.4),0 2px 12px rgba(0,0,0,0.6);}}</style>`,
                 iconSize: [24, 24], iconAnchor: [12, 12]
             });
-            L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('<b>Вы здесь</b>');
+            L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('<b>📍 Вы здесь</b>');
 
             // Accuracy circle
             if (accuracy) {
-                L.circle([lat, lng], { radius: accuracy, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.08, weight: 1 }).addTo(map);
+                L.circle([lat, lng], { radius: accuracy, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.15, weight: 1.5 }).addTo(map);
             }
 
-            // Zone circles
-            L.circle([lat, lng], { radius: MAX_DIST, color: '#0a84ff', fillOpacity: 0.03, weight: 1, dashArray: '6,6' }).addTo(map);
-            L.circle([lat, lng], { radius: MIN_DIST, color: '#ff3b30', fillOpacity: 0.04, weight: 1, dashArray: '4,4' }).addTo(map);
+            // Zone circles — яркие, видимые на спутнике
+            L.circle([lat, lng], {
+                radius: MAX_DIST,
+                color: '#0a84ff',
+                fillColor: '#0a84ff',
+                fillOpacity: 0.08,
+                weight: 2,
+                dashArray: '8,8'
+            }).addTo(map);
+
+            L.circle([lat, lng], {
+                radius: MIN_DIST,
+                color: '#ff3b30',
+                fillColor: '#ff3b30',
+                fillOpacity: 0.12,
+                weight: 2,
+                dashArray: '5,5'
+            }).addTo(map);
 
             // Load or generate points
             const saved = loadPoints();
@@ -502,12 +600,12 @@
                 log('Generated new points');
             }
 
-            // Render points
+            // Render points — яркие маркеры для спутника
             const allMarkers = [];
             points.forEach((p, i) => {
                 const icon = L.divIcon({
                     className: 'point-marker',
-                    html: `<div style="width:40px;height:40px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 3px 12px rgba(255,59,48,0.4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;">${i+1}</div>`,
+                    html: `<div style="width:40px;height:40px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(255,59,48,0.4),0 2px 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${i+1}</div>`,
                     iconSize: [40, 40], iconAnchor: [20, 20]
                 });
                 const m = L.marker([p.lat, p.lng], { icon }).addTo(map);
@@ -551,6 +649,7 @@
                     return;
                 }
                 log('Using Telegram LocationManager');
+
                 if (tg.LocationManager.requestLocation) {
                     tg.LocationManager.requestLocation((loc) => {
                         if (loc && loc.latitude !== undefined) {
@@ -680,6 +779,10 @@
                 location.reload();
             });
             document.getElementById('map').addEventListener('click', closeSheet);
+
+            // Map type toggle
+            document.getElementById('btn-sat').addEventListener('click', () => switchMapType('sat'));
+            document.getElementById('btn-hyb').addEventListener('click', () => switchMapType('hyb'));
 
             startApp();
         }
