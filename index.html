@@ -261,53 +261,58 @@
         }
         function closeSheet() { $('sheet').classList.remove('visible'); }
 
-        async function reqTgLoc() {
-            return new Promise((res, rej) => {
-                if (!tg || !tg.LocationManager) return rej(new Error('No LocationManager'));
-                if (tg.LocationManager.isSupported && !tg.LocationManager.isSupported()) return rej(new Error('Not supported'));
-                const cb = loc => loc && loc.latitude !== undefined ? res({ lat: loc.latitude, lng: loc.longitude, acc: loc.horizontal_accuracy }) : rej(new Error('Empty'));
-                if (tg.LocationManager.requestLocation) { log('Using requestLocation'); tg.LocationManager.requestLocation(cb); }
-                else if (tg.LocationManager.getLocation) { log('Using getLocation'); tg.LocationManager.getLocation(cb); }
-                else rej(new Error('No method'));
-            });
-        }
+        // === BROWSER GEOLOCATION ONLY ===
+        // LocationManager в Telegram WebApp часто не работает на iOS и некоторых Android
+        // Используем только navigator.geolocation — он работает стабильно везде
         function reqBrowserLoc() {
             return new Promise((res, rej) => {
-                if (!navigator.geolocation) return rej(new Error('No geolocation'));
+                if (!navigator.geolocation) return rej(new Error('Геолокация не поддерживается устройством'));
+                log('Using browser geolocation');
                 navigator.geolocation.getCurrentPosition(
-                    pos => res({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy }),
+                    pos => {
+                        log('Browser location success:', pos.coords.latitude, pos.coords.longitude);
+                        res({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
+                    },
                     err => {
-                        const msgs = ['Доступ запрещён. Разрешите в настройках.', 'Геолокация недоступна.', 'Превышено время ожидания.'];
-                        rej(new Error(msgs[err.code - 1] || 'Ошибка геолокации'));
+                        let msg = 'Не удалось получить геолокацию';
+                        if (err.code === 1) msg = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках устройства.';
+                        else if (err.code === 2) msg = 'Геолокация недоступна. Проверьте, включён ли GPS.';
+                        else if (err.code === 3) msg = 'Превышено время ожидания. Попробуйте снова.';
+                        log('Browser location error:', err.code, msg);
+                        rej(new Error(msg));
                     },
                     { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
                 );
             });
         }
-        async function getLoc() {
-            if (tg && tg.LocationManager) {
-                try { return await reqTgLoc(); } catch (e) { log('TG fail:', e.message); }
-            }
-            return await reqBrowserLoc();
-        }
 
         async function start() {
             setLoad('Запрашиваем геолокацию...', 'Это может занять несколько секунд');
             try {
-                const loc = await getLoc();
+                const loc = await reqBrowserLoc();
                 setTimeout(() => { initMap(loc.lat, loc.lng, loc.acc); $('screen-loading').classList.add('hidden'); }, 300);
             } catch (e) {
-                log('Loc error:', e.message);
-                if (e.message.includes('запрещён') || e.message.includes('permission')) showScreen('screen-perm');
-                else showErr('Не удалось получить геолокацию', e.message);
+                log('Location error:', e.message);
+                if (e.message.includes('запрещён') || e.message.includes('permission') || e.message.includes('denied')) {
+                    showScreen('screen-perm');
+                } else {
+                    showErr('Не удалось получить геолокацию', e.message);
+                }
             }
         }
 
         function init() {
+            // Init Telegram WebApp (для темы и expand)
             if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp; tg.ready(); tg.expand();
-                log('TG ready, ver:', tg.version, 'LM:', !!tg.LocationManager);
+                tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                log('Telegram WebApp ready, version:', tg.version);
+            } else {
+                log('Running outside Telegram');
             }
+
+            // Bindings
             $('btn-request-loc').onclick = () => start();
             $('btn-use-browser').onclick = () => start();
             $('btn-retry').onclick = () => start();
@@ -317,6 +322,8 @@
             $('map').onclick = closeSheet;
             $('btn-sat').onclick = () => switchType('sat');
             $('btn-hyb').onclick = () => switchType('hyb');
+
+            // Start immediately
             start();
         }
         document.addEventListener('DOMContentLoaded', init);
