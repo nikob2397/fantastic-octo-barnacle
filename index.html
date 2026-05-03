@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Telegram WebApp - Геолокация</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Geo Cash</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,115 +12,229 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+        :root {
+            --bg: var(--tg-theme-bg-color, #1c1c1e);
+            --text: var(--tg-theme-text-color, #ffffff);
+            --hint: var(--tg-theme-hint-color, #8e8e93);
+            --button: var(--tg-theme-button-color, #0a84ff);
+            --button-text: var(--tg-theme-button-text-color, #ffffff);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            --accent: #0a84ff;
+            --danger: #ff3b30;
+            --success: #34c759;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        #loading {
+
+        /* === SCREENS === */
+        .screen {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: var(--tg-theme-bg-color, #ffffff);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            transition: opacity 0.3s;
+            background: var(--bg);
+            padding: 24px;
+            text-align: center;
+            transition: opacity 0.3s ease;
         }
-        #loading.hidden {
+        .screen.hidden {
             opacity: 0;
             pointer-events: none;
+            z-index: -1;
         }
+
+        /* Loading */
         .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid var(--tg-theme-hint-color, #999);
-            border-top-color: var(--tg-theme-button-color, #2481cc);
+            width: 56px;
+            height: 56px;
+            border: 4px solid rgba(10, 132, 255, 0.15);
+            border-top-color: var(--accent);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 24px;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            font-size: 17px;
+            color: var(--text);
+            font-weight: 400;
         }
-        #loading-text {
-            font-size: 16px;
-            color: var(--tg-theme-text-color, #000);
+        .loading-sub {
+            font-size: 13px;
+            color: var(--hint);
+            margin-top: 8px;
         }
+
+        /* Error */
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .error-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+        .error-desc {
+            font-size: 15px;
+            color: var(--hint);
+            line-height: 1.5;
+            margin-bottom: 32px;
+            max-width: 320px;
+        }
+        .btn {
+            background: var(--button);
+            color: var(--button-text);
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            max-width: 280px;
+            transition: opacity 0.2s;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-secondary {
+            background: var(--secondary-bg);
+            color: var(--text);
+            margin-top: 12px;
+        }
+
+        /* Permission */
+        .perm-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+        }
+        .perm-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .perm-desc {
+            font-size: 15px;
+            color: var(--hint);
+            line-height: 1.5;
+            margin-bottom: 32px;
+            max-width: 300px;
+        }
+
+        /* Map */
+        #map-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            display: none;
+        }
+        #map-container.visible { display: block; }
         #map {
             width: 100%;
             height: 100%;
-            z-index: 1;
         }
-        #info-panel {
+
+        /* Bottom Sheet */
+        .bottom-sheet {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--tg-theme-bg-color, #ffffff);
-            border-top: 1px solid var(--tg-theme-hint-color, #ddd);
-            padding: 16px;
-            z-index: 100;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            max-height: 40vh;
-            overflow-y: auto;
+            background: var(--secondary-bg);
+            border-radius: 20px 20px 0 0;
+            padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+            z-index: 200;
+            transform: translateY(110%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            max-height: 55vh;
         }
-        #info-panel.visible {
+        .bottom-sheet.visible {
             transform: translateY(0);
         }
-        .info-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--tg-theme-text-color, #000);
+        .sheet-handle {
+            width: 36px;
+            height: 5px;
+            background: var(--hint);
+            border-radius: 3px;
+            margin: 0 auto 16px;
+            opacity: 0.4;
         }
-        .info-row {
+        .sheet-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sheet-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
-            font-size: 14px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 0.5px solid rgba(142,142,147,0.2);
         }
-        .info-row:last-child {
-            border-bottom: none;
+        .sheet-row:last-child { border-bottom: none; }
+        .sheet-label {
+            font-size: 15px;
+            color: var(--hint);
         }
-        .info-label {
-            color: var(--tg-theme-hint-color, #666);
-        }
-        .info-value {
+        .sheet-value {
+            font-size: 15px;
             font-weight: 500;
-            color: var(--tg-theme-text-color, #000);
+            color: var(--text);
+            font-family: 'SF Mono', Monaco, monospace;
         }
-        .close-btn {
+        .sheet-value.distance {
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .sheet-close {
             position: absolute;
-            top: 12px;
+            top: 16px;
             right: 16px;
             background: none;
             border: none;
-            font-size: 24px;
-            color: var(--tg-theme-hint-color, #999);
+            font-size: 28px;
+            color: var(--hint);
             cursor: pointer;
-            padding: 4px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
+        /* Legend */
         .legend {
             position: fixed;
             top: 12px;
             right: 12px;
-            background: var(--tg-theme-bg-color, #fff);
+            background: var(--secondary-bg);
             padding: 10px 14px;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
             z-index: 100;
-            font-size: 13px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
         }
         .legend-item {
             display: flex;
@@ -128,429 +242,462 @@
             gap: 8px;
             margin-bottom: 6px;
         }
-        .legend-item:last-child {
-            margin-bottom: 0;
-        }
+        .legend-item:last-child { margin-bottom: 0; }
         .legend-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
         }
-        .legend-dot.user {
-            background: #2481cc;
-        }
-        .legend-dot.point {
-            background: #e74c3c;
-        }
-        .error-screen {
+        .legend-dot.user { background: var(--accent); }
+        .legend-dot.point { background: var(--danger); }
+
+        /* Debug panel */
+        .debug-btn {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--tg-theme-bg-color, #ffffff);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            padding: 24px;
-            text-align: center;
-        }
-        .error-screen.visible {
-            display: flex;
-        }
-        .error-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-        .error-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .error-text {
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, #666);
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
-        .retry-btn {
-            background: var(--tg-theme-button-color, #2481cc);
-            color: var(--tg-theme-button-text-color, #fff);
+            bottom: 16px;
+            left: 16px;
+            z-index: 100;
+            background: var(--secondary-bg);
+            color: var(--hint);
             border: none;
-            padding: 12px 32px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
             cursor: pointer;
+            display: none;
+        }
+        .debug-btn.visible { display: block; }
+
+        /* Leaflet dark theme overrides */
+        .leaflet-container {
+            background: #1c1c1e !important;
         }
     </style>
 </head>
 <body>
-    <div id="loading">
+
+    <!-- LOADING SCREEN -->
+    <div id="screen-loading" class="screen">
         <div class="spinner"></div>
-        <div id="loading-text">Запрашиваем геолокацию...</div>
+        <div class="loading-text">Запрашиваем геолокацию...</div>
+        <div class="loading-sub" id="loading-sub">Подождите немного</div>
     </div>
 
-    <div id="error-screen" class="error-screen">
-        <div class="error-icon">📍</div>
-        <div class="error-title">Геолокация недоступна</div>
-        <div class="error-text" id="error-text">Не удалось получить ваше местоположение. Пожалуйста, разрешите доступ к геолокации и попробуйте снова.</div>
-        <button class="retry-btn" onclick="initApp()">Попробовать снова</button>
+    <!-- PERMISSION SCREEN -->
+    <div id="screen-perm" class="screen hidden">
+        <div class="perm-icon">📍</div>
+        <div class="perm-title">Нужен доступ к геолокации</div>
+        <div class="perm-desc">Для работы приложения необходимо разрешить доступ к вашему местоположению. Это нужно, чтобы показать точки рядом с вами.</div>
+        <button class="btn" id="btn-request-loc">Разрешить доступ</button>
+        <button class="btn btn-secondary" id="btn-use-browser">Использовать браузерный GPS</button>
     </div>
 
-    <div id="map"></div>
-
-    <div class="legend">
-        <div class="legend-item">
-            <div class="legend-dot user"></div>
-            <span>Вы здесь</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-dot point"></div>
-            <span>Точки (3 шт)</span>
-        </div>
+    <!-- ERROR SCREEN -->
+    <div id="screen-error" class="screen hidden">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title" id="error-title">Ошибка</div>
+        <div class="error-desc" id="error-desc">Что-то пошло не так</div>
+        <button class="btn" id="btn-retry">Попробовать снова</button>
+        <button class="btn btn-secondary" id="btn-reset-points">Сбросить точки</button>
     </div>
 
-    <div id="info-panel">
-        <button class="close-btn" onclick="closeInfoPanel()">×</button>
-        <div class="info-title">📍 Информация о точке</div>
-        <div class="info-row">
-            <span class="info-label">Расстояние:</span>
-            <span class="info-value" id="info-distance">-</span>
+    <!-- MAP -->
+    <div id="map-container">
+        <div id="map"></div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot user"></div>
+                <span>Вы здесь</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot point"></div>
+                <span>Точки</span>
+            </div>
         </div>
-        <div class="info-row">
-            <span class="info-label">Широта:</span>
-            <span class="info-value" id="info-lat">-</span>
+        <button class="debug-btn" id="btn-debug">🔄 Сбросить точки</button>
+    </div>
+
+    <!-- BOTTOM SHEET -->
+    <div class="bottom-sheet" id="bottom-sheet">
+        <button class="sheet-close" id="sheet-close">×</button>
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">📍 Точка <span id="sheet-num">#1</span></div>
+        <div class="sheet-row">
+            <span class="sheet-label">Расстояние</span>
+            <span class="sheet-value distance" id="sheet-dist">-</span>
         </div>
-        <div class="info-row">
-            <span class="info-label">Долгота:</span>
-            <span class="info-value" id="info-lng">-</span>
+        <div class="sheet-row">
+            <span class="sheet-label">Широта</span>
+            <span class="sheet-value" id="sheet-lat">-</span>
         </div>
-        <div class="info-row">
-            <span class="info-label">Номер точки:</span>
-            <span class="info-value" id="info-index">-</span>
+        <div class="sheet-row">
+            <span class="sheet-label">Долгота</span>
+            <span class="sheet-value" id="sheet-lng">-</span>
+        </div>
+        <div class="sheet-row">
+            <span class="sheet-label">Точность</span>
+            <span class="sheet-value" id="sheet-acc">-</span>
         </div>
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-
-        // Константы
-        const MIN_DISTANCE = 700;   // метры
-        const MAX_DISTANCE = 3000;  // метры
+        // ===================== CONSTANTS =====================
+        const MIN_DIST = 700;
+        const MAX_DIST = 3000;
         const POINTS_COUNT = 3;
-        const STORAGE_KEY = 'tg_webapp_points';
+        const STORAGE_KEY = 'geo_cash_points_v2';
+        const USER_STORAGE_KEY = 'geo_cash_user_loc';
 
+        // ===================== STATE =====================
+        let tg = null;
         let map = null;
-        let userMarker = null;
-        let pointMarkers = [];
-        let userLocation = null;
+        let userLoc = null;
         let points = [];
+        let markers = [];
+        let useNativeLocation = true;
 
-        // Функция для вычисления расстояния между двумя точками (формула гаверсинусов)
+        // ===================== UTILS =====================
+        function log(...args) {
+            console.log('[GeoCash]', ...args);
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden');
+        }
+
+        function setLoading(text, sub) {
+            document.querySelector('.loading-text').textContent = text;
+            document.getElementById('loading-sub').textContent = sub || '';
+            showScreen('screen-loading');
+        }
+
+        function showError(title, desc) {
+            document.getElementById('error-title').textContent = title;
+            document.getElementById('error-desc').textContent = desc;
+            showScreen('screen-error');
+        }
+
         function getDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371000; // радиус Земли в метрах
+            const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // Генерация случайной точки в заданном радиусе
-        function generateRandomPoint(centerLat, centerLng, minDist, maxDist) {
-            // Случайное расстояние в метрах
-            const distance = minDist + Math.random() * (maxDist - minDist);
-            // Случайный угол в радианах
-            const angle = Math.random() * 2 * Math.PI;
-
-            // Переводим расстояние в градусы (приближённо)
-            const latOffset = (distance * Math.cos(angle)) / 111320;
-            const lngOffset = (distance * Math.sin(angle)) / (111320 * Math.cos(centerLat * Math.PI / 180));
-
-            return {
-                lat: centerLat + latOffset,
-                lng: centerLng + lngOffset,
-                distance: distance
-            };
+        function formatDist(m) {
+            if (m < 1000) return Math.round(m) + ' м';
+            return (m / 1000).toFixed(2) + ' км';
         }
 
-        // Генерация 3 точек с проверкой минимального расстояния между ними
-        function generatePoints(centerLat, centerLng) {
-            const generated = [];
-            let attempts = 0;
-            const maxAttempts = 1000;
-
-            while (generated.length < POINTS_COUNT && attempts < maxAttempts) {
-                const point = generateRandomPoint(centerLat, centerLng, MIN_DISTANCE, MAX_DISTANCE);
-
-                // Проверяем, что новая точка не слишком близко к уже созданным
-                let tooClose = false;
-                for (const existing of generated) {
-                    const dist = getDistance(point.lat, point.lng, existing.lat, existing.lng);
-                    if (dist < 200) { // минимум 200м между точками
-                        tooClose = true;
-                        break;
-                    }
-                }
-
-                if (!tooClose) {
-                    generated.push(point);
-                }
-                attempts++;
-            }
-
-            return generated;
-        }
-
-        // Сохранение точек в localStorage
-        function savePoints(points) {
-            const data = {
-                points: points,
-                timestamp: Date.now()
-            };
+        // ===================== STORAGE =====================
+        function savePoints(pts) {
+            const data = { points: pts, createdAt: Date.now() };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            log('Points saved');
         }
 
-        // Загрузка точек из localStorage
         function loadPoints() {
             try {
-                const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
                 if (data && data.points && data.points.length === POINTS_COUNT) {
                     return data.points;
                 }
-            } catch (e) {
-                console.error('Ошибка чтения localStorage:', e);
-            }
+            } catch (e) { log('Load error:', e); }
             return null;
         }
 
-        // Очистка сохранённых точек (для отладки)
-        function clearSavedPoints() {
+        function clearPoints() {
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(USER_STORAGE_KEY);
+            points = [];
+            markers = [];
+            log('Points cleared');
         }
 
-        // Инициализация карты
-        function initMap(lat, lng) {
-            userLocation = { lat, lng };
+        // ===================== POINT GENERATION =====================
+        function generateRandomPoint(centerLat, centerLng, minD, maxD) {
+            const dist = minD + Math.random() * (maxD - minD);
+            const angle = Math.random() * 2 * Math.PI;
+            const latOffset = (dist * Math.cos(angle)) / 111320;
+            const lngOffset = (dist * Math.sin(angle)) / (111320 * Math.cos(centerLat * Math.PI / 180));
+            return { lat: centerLat + latOffset, lng: centerLng + lngOffset, distance: dist };
+        }
 
-            // Создаём карту
-            map = L.map('map', {
-                zoomControl: false
-            }).setView([lat, lng], 14);
+        function generatePoints(centerLat, centerLng) {
+            const generated = [];
+            let attempts = 0;
+            while (generated.length < POINTS_COUNT && attempts < 2000) {
+                const p = generateRandomPoint(centerLat, centerLng, MIN_DIST, MAX_DIST);
+                let tooClose = false;
+                for (const ex of generated) {
+                    if (getDistance(p.lat, p.lng, ex.lat, ex.lng) < 200) { tooClose = true; break; }
+                }
+                if (!tooClose) generated.push(p);
+                attempts++;
+            }
+            return generated;
+        }
 
-            // Добавляем тайлы OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
+        // ===================== MAP =====================
+        function initMap(lat, lng, accuracy) {
+            userLoc = { lat, lng, accuracy };
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userLoc));
+
+            document.getElementById('map-container').classList.add('visible');
+
+            // Dark theme tiles
+            map = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OSM &copy; CARTO',
+                maxZoom: 19,
+                subdomains: 'abcd'
             }).addTo(map);
 
-            // Маркер пользователя
+            // User marker
             const userIcon = L.divIcon({
                 className: 'user-marker',
-                html: `<div style="
-                    width: 20px; 
-                    height: 20px; 
-                    background: #2481cc; 
-                    border: 3px solid white; 
-                    border-radius: 50%; 
-                    box-shadow: 0 2px 8px rgba(36,129,204,0.5);
-                "></div>`,
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
+                html: `<div style="width:22px;height:22px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(10,132,255,0.3),0 2px 8px rgba(0,0,0,0.4);"></div>`,
+                iconSize: [22, 22], iconAnchor: [11, 11]
             });
+            L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('<b>Вы здесь</b>');
 
-            userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
-            userMarker.bindPopup('<b>Вы здесь</b>').openPopup();
+            // Accuracy circle
+            if (accuracy) {
+                L.circle([lat, lng], { radius: accuracy, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.1, weight: 1 }).addTo(map);
+            }
 
-            // Круг радиуса 3км
-            L.circle([lat, lng], {
-                radius: MAX_DISTANCE,
-                color: '#2481cc',
-                fillColor: '#2481cc',
-                fillOpacity: 0.05,
-                weight: 1,
-                dashArray: '5, 10'
-            }).addTo(map);
+            // Zone circles
+            L.circle([lat, lng], { radius: MAX_DIST, color: '#0a84ff', fillOpacity: 0.03, weight: 1, dashArray: '6,6' }).addTo(map);
+            L.circle([lat, lng], { radius: MIN_DIST, color: '#ff3b30', fillOpacity: 0.05, weight: 1, dashArray: '4,4' }).addTo(map);
 
-            // Круг радиуса 700м (запретная зона)
-            L.circle([lat, lng], {
-                radius: MIN_DISTANCE,
-                color: '#e74c3c',
-                fillColor: '#e74c3c',
-                fillOpacity: 0.08,
-                weight: 1,
-                dashArray: '5, 5'
-            }).addTo(map);
-
-            // Загружаем или генерируем точки
+            // Load or generate points
             const saved = loadPoints();
             if (saved) {
                 points = saved;
+                log('Loaded saved points');
             } else {
                 points = generatePoints(lat, lng);
                 savePoints(points);
+                log('Generated new points');
             }
 
-            // Отображаем точки
-            const pointIcon = L.divIcon({
-                className: 'point-marker',
-                html: `<div style="
-                    width: 28px; 
-                    height: 28px; 
-                    background: #e74c3c; 
-                    border: 3px solid white; 
-                    border-radius: 50%; 
-                    box-shadow: 0 2px 8px rgba(231,76,60,0.5);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-weight: bold;
-                    font-size: 12px;
-                ">${index + 1}</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
-            });
-
-            points.forEach((point, index) => {
-                const marker = L.marker([point.lat, point.lng], {
-                    icon: L.divIcon({
-                        className: 'point-marker',
-                        html: `<div style="
-                            width: 32px; 
-                            height: 32px; 
-                            background: #e74c3c; 
-                            border: 3px solid white; 
-                            border-radius: 50%; 
-                            box-shadow: 0 2px 10px rgba(231,76,60,0.6);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            color: white;
-                            font-weight: bold;
-                            font-size: 14px;
-                            font-family: sans-serif;
-                        ">${index + 1}</div>`,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16]
-                    })
-                }).addTo(map);
-
-                marker.on('click', () => showPointInfo(point, index));
-                pointMarkers.push(marker);
-            });
-
-            // Подгоняем карту, чтобы всё было видно
-            const group = new L.featureGroup([userMarker, ...pointMarkers]);
-            map.fitBounds(group.getBounds().pad(0.2));
-        }
-
-        // Показать информацию о точке
-        function showPointInfo(point, index) {
-            const dist = getDistance(userLocation.lat, userLocation.lng, point.lat, point.lng);
-
-            document.getElementById('info-distance').textContent = dist < 1000 
-                ? Math.round(dist) + ' м' 
-                : (dist / 1000).toFixed(2) + ' км';
-            document.getElementById('info-lat').textContent = point.lat.toFixed(6);
-            document.getElementById('info-lng').textContent = point.lng.toFixed(6);
-            document.getElementById('info-index').textContent = '#' + (index + 1);
-
-            document.getElementById('info-panel').classList.add('visible');
-        }
-
-        // Закрыть панель информации
-        function closeInfoPanel() {
-            document.getElementById('info-panel').classList.remove('visible');
-        }
-
-        // Показать ошибку
-        function showError(message) {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('error-text').textContent = message;
-            document.getElementById('error-screen').classList.add('visible');
-        }
-
-        // Скрыть ошибку
-        function hideError() {
-            document.getElementById('error-screen').classList.remove('visible');
-        }
-
-        // Основная функция инициализации
-        function initApp() {
-            hideError();
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('loading-text').textContent = 'Запрашиваем геолокацию...';
-
-            // Пробуем получить геолокацию через Telegram WebApp API
-            if (tg.platform !== 'unknown' && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                // Используем нативный API Telegram
-                tg.LocationManager.getLocation((location) => {
-                    if (location) {
-                        document.getElementById('loading').classList.add('hidden');
-                        initMap(location.latitude, location.longitude);
-                    } else {
-                        // Fallback на браузерный geolocation
-                        requestBrowserLocation();
-                    }
+            // Render points
+            const allMarkers = [];
+            points.forEach((p, i) => {
+                const icon = L.divIcon({
+                    className: 'point-marker',
+                    html: `<div style="width:36px;height:36px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 2px 10px rgba(255,59,48,0.5);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:15px;">${i+1}</div>`,
+                    iconSize: [36, 36], iconAnchor: [18, 18]
                 });
-            } else {
-                // Fallback на браузерный geolocation
-                requestBrowserLocation();
-            }
+                const m = L.marker([p.lat, p.lng], { icon }).addTo(map);
+                m.on('click', () => openSheet(p, i));
+                markers.push(m);
+                allMarkers.push(m);
+            });
+
+            // Fit bounds
+            const group = L.featureGroup([...allMarkers]);
+            map.fitBounds(group.getBounds().pad(0.25));
+
+            // Show debug button
+            document.getElementById('btn-debug').classList.add('visible');
         }
 
-        // Запрос геолокации через браузер
-        function requestBrowserLocation() {
-            if (!navigator.geolocation) {
-                showError('Геолокация не поддерживается вашим устройством.');
-                return;
-            }
+        // ===================== BOTTOM SHEET =====================
+        function openSheet(point, index) {
+            const dist = getDistance(userLoc.lat, userLoc.lng, point.lat, point.lng);
+            document.getElementById('sheet-num').textContent = '#' + (index + 1);
+            document.getElementById('sheet-dist').textContent = formatDist(dist);
+            document.getElementById('sheet-lat').textContent = point.lat.toFixed(6);
+            document.getElementById('sheet-lng').textContent = point.lng.toFixed(6);
+            document.getElementById('sheet-acc').textContent = userLoc.accuracy ? '±' + Math.round(userLoc.accuracy) + ' м' : '—';
+            document.getElementById('bottom-sheet').classList.add('visible');
+        }
 
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    document.getElementById('loading').classList.add('hidden');
-                    initMap(position.coords.latitude, position.coords.longitude);
-                },
-                (error) => {
-                    let msg = 'Не удалось получить ваше местоположение.';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            msg = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках браузера.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            msg = 'Информация о местоположении недоступна.';
-                            break;
-                        case error.TIMEOUT:
-                            msg = 'Превышено время ожидания геолокации.';
-                            break;
-                    }
-                    showError(msg);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 0
+        function closeSheet() {
+            document.getElementById('bottom-sheet').classList.remove('visible');
+        }
+
+        // ===================== LOCATION METHODS =====================
+
+        // Method 1: Telegram LocationManager (native)
+        async function requestTelegramLocation() {
+            return new Promise((resolve, reject) => {
+                if (!tg || !tg.LocationManager) {
+                    reject(new Error('LocationManager not available'));
+                    return;
                 }
-            );
+
+                // Check if supported
+                if (tg.LocationManager.isSupported && !tg.LocationManager.isSupported()) {
+                    reject(new Error('LocationManager not supported'));
+                    return;
+                }
+
+                log('Using Telegram LocationManager');
+
+                // Try requestLocation first (newer API)
+                if (tg.LocationManager.requestLocation) {
+                    tg.LocationManager.requestLocation((loc) => {
+                        if (loc && loc.latitude !== undefined) {
+                            log('Got location via requestLocation:', loc);
+                            resolve({ lat: loc.latitude, lng: loc.longitude, accuracy: loc.horizontal_accuracy });
+                        } else {
+                            reject(new Error('Empty location from requestLocation'));
+                        }
+                    });
+                    return;
+                }
+
+                // Fallback to getLocation (older API)
+                if (tg.LocationManager.getLocation) {
+                    tg.LocationManager.getLocation((loc) => {
+                        if (loc && loc.latitude !== undefined) {
+                            log('Got location via getLocation:', loc);
+                            resolve({ lat: loc.latitude, lng: loc.longitude, accuracy: loc.horizontal_accuracy });
+                        } else {
+                            reject(new Error('Empty location from getLocation'));
+                        }
+                    });
+                    return;
+                }
+
+                reject(new Error('No location method available'));
+            });
         }
 
-        // Запускаем приложение при загрузке
-        document.addEventListener('DOMContentLoaded', initApp);
+        // Method 2: Browser Geolocation
+        function requestBrowserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Browser geolocation not supported'));
+                    return;
+                }
+                log('Using browser geolocation');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        log('Browser location:', pos.coords);
+                        resolve({
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            accuracy: pos.coords.accuracy
+                        });
+                    },
+                    (err) => {
+                        let msg = 'Не удалось получить геолокацию';
+                        if (err.code === 1) msg = 'Доступ к геолокации запрещён. Разрешите доступ в настройках устройства.';
+                        else if (err.code === 2) msg = 'Геолокация недоступна. Проверьте GPS.';
+                        else if (err.code === 3) msg = 'Превышено время ожидания. Попробуйте снова.';
+                        reject(new Error(msg));
+                    },
+                    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+                );
+            });
+        }
 
-        // Обработка изменения темы Telegram
-        tg.onEvent('themeChanged', () => {
-            // Перезагружаем стили при смене темы
-            document.body.style.background = tg.themeParams.bg_color || '#ffffff';
-        });
+        // Method 3: Try Telegram first, fallback to browser
+        async function getLocation() {
+            const errors = [];
+
+            // Try Telegram native
+            if (useNativeLocation && tg && tg.LocationManager) {
+                try {
+                    return await requestTelegramLocation();
+                } catch (e) {
+                    log('Telegram location failed:', e.message);
+                    errors.push('Telegram: ' + e.message);
+                }
+            }
+
+            // Fallback to browser
+            try {
+                return await requestBrowserLocation();
+            } catch (e) {
+                log('Browser location failed:', e.message);
+                errors.push('Browser: ' + e.message);
+                throw new Error(errors.join(' | '));
+            }
+        }
+
+        // ===================== MAIN FLOW =====================
+        async function startApp() {
+            setLoading('Запрашиваем геолокацию...', 'Это может занять несколько секунд');
+
+            try {
+                const loc = await getLocation();
+                showScreen('screen-loading'); // keep loading while map init
+                setTimeout(() => {
+                    initMap(loc.lat, loc.lng, loc.accuracy);
+                    showScreen('screen-loading');
+                    document.getElementById('screen-loading').classList.add('hidden');
+                }, 300);
+            } catch (e) {
+                log('Location error:', e.message);
+                // Show permission screen if it's a permission issue
+                if (e.message.includes('запрещён') || e.message.includes('permission') || e.message.includes('denied')) {
+                    showScreen('screen-perm');
+                } else {
+                    showError('Не удалось получить геолокацию', e.message);
+                }
+            }
+        }
+
+        // ===================== INIT =====================
+        function init() {
+            // Init Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                log('Telegram WebApp initialized, version:', tg.version);
+                log('LocationManager available:', !!tg.LocationManager);
+                if (tg.LocationManager) {
+                    log('LocationManager methods:', Object.keys(tg.LocationManager));
+                }
+            } else {
+                log('Running outside Telegram');
+                useNativeLocation = false;
+            }
+
+            // Event listeners
+            document.getElementById('btn-request-loc').addEventListener('click', () => {
+                useNativeLocation = true;
+                startApp();
+            });
+
+            document.getElementById('btn-use-browser').addEventListener('click', () => {
+                useNativeLocation = false;
+                startApp();
+            });
+
+            document.getElementById('btn-retry').addEventListener('click', startApp);
+
+            document.getElementById('btn-reset-points').addEventListener('click', () => {
+                clearPoints();
+                showError('Точки сброшены', 'При следующем запуске будут созданы новые точки. Перезапустите приложение.');
+            });
+
+            document.getElementById('sheet-close').addEventListener('click', closeSheet);
+
+            document.getElementById('btn-debug').addEventListener('click', () => {
+                clearPoints();
+                location.reload();
+            });
+
+            // Tap on map to close sheet
+            document.getElementById('map').addEventListener('click', closeSheet);
+
+            // Start
+            startApp();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
