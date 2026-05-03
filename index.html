@@ -15,7 +15,7 @@
         }
 
         body {
-            background: #1a1a1a;
+            background: #0d0d0d;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             height: 100vh;
@@ -28,7 +28,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a1a;
+            background: #0d0d0d;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -69,29 +69,38 @@
             margin-top: 8px;
         }
 
-        #map-container {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #1a1a1a;
-            padding: 10px;
-        }
-
+        /* The map is the entire viewport, but clipped to a square canvas */
         #map-wrapper {
-            width: 100%;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(100vw, 100vh);
+            height: min(100vw, 100vh);
             max-width: 600px;
-            aspect-ratio: 1;
+            max-height: 600px;
             border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            position: relative;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            z-index: 1;
         }
 
         #map {
             width: 100%;
             height: 100%;
+            background: #e5e5e5;
+        }
+
+        /* Dark background outside the map */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0d0d0d;
+            z-index: 0;
         }
 
         .user-marker {
@@ -128,7 +137,7 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%) translateY(120%);
-            background: rgba(30, 30, 30, 0.95);
+            background: rgba(20, 20, 20, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 16px;
             padding: 16px 20px;
@@ -213,7 +222,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a1a;
+            background: #0d0d0d;
             display: none;
             flex-direction: column;
             align-items: center;
@@ -297,10 +306,8 @@
         <button class="retry-btn" onclick="initApp()">Попробовать снова</button>
     </div>
 
-    <div id="map-container">
-        <div id="map-wrapper">
-            <div id="map"></div>
-        </div>
+    <div id="map-wrapper">
+        <div id="map"></div>
     </div>
 
     <div id="point-info">
@@ -361,14 +368,11 @@
 
         // Generate random point within annulus (minDist, maxDist) from center
         function generateRandomPoint(centerLat, centerLng, minDist, maxDist) {
-            // Random angle
             const angle = Math.random() * 2 * Math.PI;
-            // Random distance (uniform distribution in annulus)
             const dist = Math.sqrt(
                 Math.random() * (maxDist*maxDist - minDist*minDist) + minDist*minDist
             );
 
-            // Convert to lat/lng offset
             const latOffset = (dist / EARTH_RADIUS) * (180 / Math.PI);
             const lngOffset = latOffset / Math.cos(toRad(centerLat));
 
@@ -384,7 +388,6 @@
             const savedLat = localStorage.getItem('user_lat');
             const savedLng = localStorage.getItem('user_lng');
 
-            // Check if we have saved points for this location (within 100m tolerance)
             if (saved && savedLat && savedLng) {
                 const dist = getDistance(userLat, userLng, parseFloat(savedLat), parseFloat(savedLng));
                 if (dist < 100) {
@@ -399,7 +402,6 @@
                 randomPoints.push(generateRandomPoint(userLat, userLng, 300, 1500));
             }
 
-            // Save to localStorage
             localStorage.setItem('random_points', JSON.stringify(randomPoints));
             localStorage.setItem('user_lat', userLat.toString());
             localStorage.setItem('user_lng', userLng.toString());
@@ -423,7 +425,7 @@
         }
 
         function initMap() {
-            // Calculate bounds for 6km x 6km square (3km radius)
+            // Calculate bounds for 6km x 6km square (3km radius from center)
             const latOffset = (3000 / EARTH_RADIUS) * (180 / Math.PI);
             const lngOffset = latOffset / Math.cos(toRad(userLat));
 
@@ -431,7 +433,7 @@
             const northEast = [userLat + latOffset, userLng + lngOffset];
             const bounds = L.latLngBounds(southWest, northEast);
 
-            // Create map
+            // Create map centered on user
             map = L.map('map', {
                 center: [userLat, userLng],
                 zoom: 14,
@@ -442,13 +444,13 @@
                 attributionControl: true
             });
 
-            // Add standard (digital/street) tile layer (OpenStreetMap)
+            // Standard digital map (OpenStreetMap)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 18
             }).addTo(map);
 
-            // Fit to our 6km bounds
+            // Fit exactly to 6km bounds - this makes the map canvas exactly 6x6km
             map.fitBounds(bounds, { padding: [0, 0], animate: false });
 
             // Add user location marker
