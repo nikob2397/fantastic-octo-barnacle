@@ -268,9 +268,9 @@
         }
         .debug-btn.visible { display: block; }
 
-        /* Leaflet dark theme overrides */
+        /* Leaflet overrides */
         .leaflet-container {
-            background: #1c1c1e !important;
+            background: #e5e3df !important;
         }
     </style>
 </head>
@@ -450,31 +450,46 @@
 
             document.getElementById('map-container').classList.add('visible');
 
-            // Dark theme tiles
-            map = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
+            // Светлая карта + наклон как в навигаторе
+            map = L.map('map', {
+                zoomControl: false,
+                rotate: true
+            }).setView([lat, lng], 15);
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OSM &copy; CARTO',
-                maxZoom: 19,
-                subdomains: 'abcd'
+            // Устанавливаем наклон (tilt) и поворот как в навигаторе
+            // Leaflet не поддерживает 3D tilt из коробки, но можно через CSS transform
+            // Добавляем перспективу через CSS
+            const mapPane = document.querySelector('.leaflet-map-pane');
+            if (mapPane) {
+                mapPane.style.transform = 'perspective(1000px) rotateX(35deg) scale(1.1)';
+                mapPane.style.transformOrigin = 'center center';
+            }
+
+            // Светлые тайлы (стандартные OSM — светлые)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19
             }).addTo(map);
 
-            // User marker
+            // User marker (пульсирующий)
             const userIcon = L.divIcon({
                 className: 'user-marker',
-                html: `<div style="width:22px;height:22px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(10,132,255,0.3),0 2px 8px rgba(0,0,0,0.4);"></div>`,
-                iconSize: [22, 22], iconAnchor: [11, 11]
+                html: `<div style="position:relative;width:24px;height:24px;">
+                    <div style="position:absolute;top:0;left:0;width:24px;height:24px;background:#0a84ff;border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(10,132,255,0.25),0 2px 8px rgba(0,0,0,0.3);z-index:2;"></div>
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;background:rgba(10,132,255,0.15);border-radius:50%;animation:pulse 2s ease-out infinite;z-index:1;"></div>
+                </div>`,
+                iconSize: [24, 24], iconAnchor: [12, 12]
             });
             L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('<b>Вы здесь</b>');
 
             // Accuracy circle
             if (accuracy) {
-                L.circle([lat, lng], { radius: accuracy, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.1, weight: 1 }).addTo(map);
+                L.circle([lat, lng], { radius: accuracy, color: '#0a84ff', fillColor: '#0a84ff', fillOpacity: 0.08, weight: 1 }).addTo(map);
             }
 
             // Zone circles
             L.circle([lat, lng], { radius: MAX_DIST, color: '#0a84ff', fillOpacity: 0.03, weight: 1, dashArray: '6,6' }).addTo(map);
-            L.circle([lat, lng], { radius: MIN_DIST, color: '#ff3b30', fillOpacity: 0.05, weight: 1, dashArray: '4,4' }).addTo(map);
+            L.circle([lat, lng], { radius: MIN_DIST, color: '#ff3b30', fillOpacity: 0.04, weight: 1, dashArray: '4,4' }).addTo(map);
 
             // Load or generate points
             const saved = loadPoints();
@@ -492,8 +507,8 @@
             points.forEach((p, i) => {
                 const icon = L.divIcon({
                     className: 'point-marker',
-                    html: `<div style="width:36px;height:36px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 2px 10px rgba(255,59,48,0.5);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:15px;">${i+1}</div>`,
-                    iconSize: [36, 36], iconAnchor: [18, 18]
+                    html: `<div style="width:40px;height:40px;background:#ff3b30;border:3px solid white;border-radius:50%;box-shadow:0 3px 12px rgba(255,59,48,0.4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;">${i+1}</div>`,
+                    iconSize: [40, 40], iconAnchor: [20, 20]
                 });
                 const m = L.marker([p.lat, p.lng], { icon }).addTo(map);
                 m.on('click', () => openSheet(p, i));
@@ -525,24 +540,17 @@
         }
 
         // ===================== LOCATION METHODS =====================
-
-        // Method 1: Telegram LocationManager (native)
         async function requestTelegramLocation() {
             return new Promise((resolve, reject) => {
                 if (!tg || !tg.LocationManager) {
                     reject(new Error('LocationManager not available'));
                     return;
                 }
-
-                // Check if supported
                 if (tg.LocationManager.isSupported && !tg.LocationManager.isSupported()) {
                     reject(new Error('LocationManager not supported'));
                     return;
                 }
-
                 log('Using Telegram LocationManager');
-
-                // Try requestLocation first (newer API)
                 if (tg.LocationManager.requestLocation) {
                     tg.LocationManager.requestLocation((loc) => {
                         if (loc && loc.latitude !== undefined) {
@@ -554,8 +562,6 @@
                     });
                     return;
                 }
-
-                // Fallback to getLocation (older API)
                 if (tg.LocationManager.getLocation) {
                     tg.LocationManager.getLocation((loc) => {
                         if (loc && loc.latitude !== undefined) {
@@ -567,12 +573,10 @@
                     });
                     return;
                 }
-
                 reject(new Error('No location method available'));
             });
         }
 
-        // Method 2: Browser Geolocation
         function requestBrowserLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -601,11 +605,8 @@
             });
         }
 
-        // Method 3: Try Telegram first, fallback to browser
         async function getLocation() {
             const errors = [];
-
-            // Try Telegram native
             if (useNativeLocation && tg && tg.LocationManager) {
                 try {
                     return await requestTelegramLocation();
@@ -614,8 +615,6 @@
                     errors.push('Telegram: ' + e.message);
                 }
             }
-
-            // Fallback to browser
             try {
                 return await requestBrowserLocation();
             } catch (e) {
@@ -628,10 +627,9 @@
         // ===================== MAIN FLOW =====================
         async function startApp() {
             setLoading('Запрашиваем геолокацию...', 'Это может занять несколько секунд');
-
             try {
                 const loc = await getLocation();
-                showScreen('screen-loading'); // keep loading while map init
+                showScreen('screen-loading');
                 setTimeout(() => {
                     initMap(loc.lat, loc.lng, loc.accuracy);
                     showScreen('screen-loading');
@@ -639,7 +637,6 @@
                 }, 300);
             } catch (e) {
                 log('Location error:', e.message);
-                // Show permission screen if it's a permission issue
                 if (e.message.includes('запрещён') || e.message.includes('permission') || e.message.includes('denied')) {
                     showScreen('screen-perm');
                 } else {
@@ -650,7 +647,6 @@
 
         // ===================== INIT =====================
         function init() {
-            // Init Telegram WebApp
             if (window.Telegram && window.Telegram.WebApp) {
                 tg = window.Telegram.WebApp;
                 tg.ready();
@@ -665,35 +661,26 @@
                 useNativeLocation = false;
             }
 
-            // Event listeners
             document.getElementById('btn-request-loc').addEventListener('click', () => {
                 useNativeLocation = true;
                 startApp();
             });
-
             document.getElementById('btn-use-browser').addEventListener('click', () => {
                 useNativeLocation = false;
                 startApp();
             });
-
             document.getElementById('btn-retry').addEventListener('click', startApp);
-
             document.getElementById('btn-reset-points').addEventListener('click', () => {
                 clearPoints();
                 showError('Точки сброшены', 'При следующем запуске будут созданы новые точки. Перезапустите приложение.');
             });
-
             document.getElementById('sheet-close').addEventListener('click', closeSheet);
-
             document.getElementById('btn-debug').addEventListener('click', () => {
                 clearPoints();
                 location.reload();
             });
-
-            // Tap on map to close sheet
             document.getElementById('map').addEventListener('click', closeSheet);
 
-            // Start
             startApp();
         }
 
