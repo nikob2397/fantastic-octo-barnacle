@@ -256,9 +256,10 @@
         let userLat, userLng;
         let randomPoints = [];
         let markers = [];
+        let mapBounds;
 
         // Константы
-        const MAP_SIZE_KM = 6; // 6x6 км
+        const MAP_SIZE_KM = 6; // 6x6 км (3 км в каждую сторону)
         const POINT_MIN_DIST_KM = 0.7; // минимум 700м
         const POINT_MAX_DIST_KM = 2.5; // максимум 2.5км
         const NUM_POINTS = 3;
@@ -323,22 +324,37 @@
         }
 
         function initMap() {
-            // Создаём карту
+            // Вычисляем границы карты (6x6 км)
+            mapBounds = getBoundsFromCenter(userLat, userLng, MAP_SIZE_KM);
+
+            // Создаём карту — полностью статичная, без взаимодействия
             map = L.map('map', {
                 zoomControl: false,
-                attributionControl: false
+                attributionControl: false,
+                dragging: false,
+                touchZoom: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                boxZoom: false,
+                keyboard: false,
+                tap: false,
+                maxBounds: mapBounds,
+                maxBoundsViscosity: 1.0,
+                zoomSnap: 0
             });
 
             // Спутниковая подложка (Esri World Imagery)
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
-                attribution: 'Esri'
+                attribution: 'Esri',
+                bounds: mapBounds // TileLayer тоже ограничиваем границами
             }).addTo(map);
 
             // Добавляем подписи
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
-                attribution: 'Esri'
+                attribution: 'Esri',
+                bounds: mapBounds
             }).addTo(map);
 
             // Маркер пользователя
@@ -350,9 +366,18 @@
 
             L.marker([userLat, userLng], { icon: userIcon }).addTo(map);
 
-            // Устанавливаем вид на область 6x6 км
-            const bounds = getBoundsFromCenter(userLat, userLng, MAP_SIZE_KM);
-            map.fitBounds(bounds, { padding: [20, 20] });
+            // Устанавливаем вид ровно на границы карты
+            map.fitBounds(mapBounds, { padding: [0, 0], animate: false });
+
+            // Фиксируем zoom — запрещаем любое изменение
+            const fixedZoom = map.getZoom();
+            map.setMinZoom(fixedZoom);
+            map.setMaxZoom(fixedZoom);
+
+            // Дополнительная защита: принудительно возвращаем вид при любых попытках сдвинуть
+            map.on('move', function() {
+                map.fitBounds(mapBounds, { padding: [0, 0], animate: false });
+            });
 
             // Загружаем или создаём точки
             loadOrCreatePoints();
@@ -513,9 +538,6 @@
         function closeInfoPanel() {
             document.getElementById('info-panel').classList.remove('active');
         }
-
-        // Закрытие панели по клику на карту
-        map && map.on('click', closeInfoPanel);
     </script>
 </body>
 </html>
