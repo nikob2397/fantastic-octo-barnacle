@@ -143,31 +143,7 @@
             pointer-events: none;
         }
 
-        .quest-photo .lock-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(26, 32, 44, 0.85);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
 
-        .quest-photo .lock-overlay .lock-icon {
-            width: 40px;
-            height: 40px;
-            opacity: 0.8;
-        }
-
-        .quest-photo .lock-overlay .lock-text {
-            color: #a0aec0;
-            font-size: 14px;
-            font-weight: 500;
-        }
 
         /* --- КНОПКА УПРАВЛЕНИЯ (правый верхний угол) --- */
         .controls {
@@ -596,14 +572,7 @@
                         <line x1="2" y1="2" x2="22" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <!-- Оверлей блокировки -->
-                <div class="lock-overlay" id="lockOverlay">
-                    <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    <div class="lock-text">Нажмите, чтобы разблокировать</div>
-                </div>
+
             </div>
         </div>
     </div>
@@ -704,7 +673,7 @@
         let currentPointIndex = 0;
         let currentUserId = null;
         let userPhone = null;
-        let questUnlocked = {}; // {questIndex: true}
+        // questUnlocked больше не используется - точки удаляются при открытии
         const RADIUS_KM = 4;
         const MIN_RANDOM_KM = 0.5;
         const MAX_RANDOM_KM = 1.5;
@@ -738,11 +707,7 @@
             }
         }
 
-        // Загружаем состояние разблокировки
-        const savedUnlocked = localStorage.getItem('questUnlocked');
-        if (savedUnlocked) {
-            questUnlocked = JSON.parse(savedUnlocked);
-        }
+
 
         // ============ SHA256 ============
         async function sha256(message) {
@@ -951,8 +916,7 @@
                     localStorage.removeItem(`map_auth_pending_${currentUserId}`);
                     localStorage.removeItem(`map_auth_quest_${currentUserId}`);
                     showToast('Квест разблокирован!', 'success');
-                    updateLockOverlay();
-                    if (window.history.replaceState) {
+                            if (window.history.replaceState) {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
                 }
@@ -980,31 +944,22 @@
 
         // ============ ЛОГИКА КВЕСТА ============
         function onPhotoClick() {
-            if (questUnlocked[currentPointIndex]) {
-                // Уже разблокирован — ничего не делаем (фото видно)
-                return;
-            }
             // Проверяем, есть ли сохранённый телефон
             const savedPhone = localStorage.getItem(`map_phone_${currentUserId}`);
             if (savedPhone) {
                 userPhone = savedPhone;
+                // Показываем спиннер вместо eye icon
+                const eyeIcon = document.querySelector('.eye-icon');
+                if (eyeIcon) {
+                    eyeIcon.innerHTML = '<div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>';
+                }
                 startAuthFlow();
             } else {
                 openPhoneModal();
             }
         }
 
-        function updateLockOverlay() {
-            const overlay = document.getElementById('lockOverlay');
-            if (questUnlocked[currentPointIndex]) {
-                overlay.style.display = 'none';
-                // Убираем иконку глаза тоже
-                const eye = document.querySelector('.eye-icon');
-                if (eye) eye.style.display = 'none';
-            } else {
-                overlay.style.display = 'flex';
-            }
-        }
+
 
         // --- Свайп для закрытия панели ---
         let startY = 0;
@@ -1128,6 +1083,7 @@
         function showQuestPanel(index) {
             currentPointIndex = index;
             const point = questData.points[index];
+            if (!point) return; // Точка удалена
 
             document.getElementById('questTitle').textContent = `Квест #${point.questId}`;
             document.getElementById('questReward').textContent = `Содержимое: ${point.reward.toLocaleString('ru-RU')} ₽`;
@@ -1135,7 +1091,6 @@
             document.getElementById('questDistance').textContent = formatDistance(point.distance);
             document.getElementById('questImg').src = point.photo;
 
-            updateLockOverlay();
 
             panel.classList.add('active');
             panel.style.transform = 'translateY(0)';
