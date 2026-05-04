@@ -57,18 +57,15 @@
             padding: 20px;
             z-index: 1000;
             display: none;
-            animation: slideUpQuest 0.3s ease;
             max-height: 80vh;
             overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
         }
 
         .quest-panel.active {
             display: block;
-        }
-
-        @keyframes slideUpQuest {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
+            transform: translateY(0);
         }
 
         .quest-panel .handle {
@@ -77,6 +74,11 @@
             background: #4a5568;
             border-radius: 2px;
             margin: 0 auto 15px;
+            cursor: grab;
+        }
+
+        .quest-panel .handle:active {
+            cursor: grabbing;
         }
 
         .quest-panel h2 {
@@ -128,7 +130,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* Без blur — фото сами по себе заблюрены */
         }
 
         .quest-photo .eye-icon {
@@ -146,7 +147,7 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            padding: 20px 0;
+            padding: 30px 0;
         }
 
         .keys-section.active {
@@ -154,16 +155,16 @@
         }
 
         .keys-section .key-img {
-            width: 100px;
-            height: 100px;
-            margin-bottom: 20px;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 25px;
         }
 
         .keys-section h3 {
             color: #e2e8f0;
             font-size: 20px;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
             line-height: 1.4;
         }
 
@@ -183,14 +184,12 @@
             text-align: center;
         }
 
-        /* --- КНОПКИ УПРАВЛЕНИЯ (правый верхний угол) --- */
+        /* --- КНОПКА УПРАВЛЕНИЯ (правый верхний угол) --- */
         .controls {
             position: fixed;
             top: 10px;
             right: 10px;
             z-index: 1000;
-            display: flex;
-            gap: 8px;
         }
 
         .control-btn {
@@ -279,10 +278,9 @@
 <body>
     <div id="map"></div>
 
-    <!-- Кнопки управления -->
+    <!-- Кнопка управления -->
     <div class="controls">
-        <button class="control-btn" onclick="refreshLocation()" title="Обновить локацию">🔄</button>
-        <button class="control-btn" onclick="focusLocation()" title="Фокус на локации">📍</button>
+        <button class="control-btn" onclick="refreshAndFocus()" title="Обновить и фокус">📍</button>
     </div>
 
     <div class="loading-overlay" id="loading">
@@ -298,21 +296,23 @@
 
     <!-- Панель квеста -->
     <div class="quest-panel" id="questPanel">
-        <div class="handle" onclick="closeQuestPanel()"></div>
-        <h2 id="questTitle">Квест #----</h2>
-        <p class="reward" id="questReward">Содержимое: ---- ₽</p>
-        <div class="info-row">
-            <span class="coords" id="questCoords">--.------, --.------</span>
-            <span class="distance" id="questDistance">--</span>
+        <div class="handle" id="panelHandle"></div>
+
+        <!-- Информация о квесте (показывается по умолчанию) -->
+        <div id="questInfoBlock">
+            <h2 id="questTitle">Квест #----</h2>
+            <p class="reward" id="questReward">Содержимое: ---- ₽</p>
+            <div class="info-row">
+                <span class="coords" id="questCoords">--.------, --.------</span>
+                <span class="distance" id="questDistance">--</span>
+            </div>
+            <div class="quest-photo" id="questPhotoBlock" onclick="showKeysInPanel()">
+                <img id="questImg" src="" alt="quest">
+                <div class="eye-icon">🙈</div>
+            </div>
         </div>
 
-        <!-- Фото (показывается по умолчанию) -->
-        <div class="quest-photo" id="questPhotoBlock" onclick="showKeysInPanel()">
-            <img id="questImg" src="" alt="quest">
-            <div class="eye-icon">🙈</div>
-        </div>
-
-        <!-- Секция ключиков (показывается при нажатии на фото) -->
+        <!-- Секция ключиков (показывается при нажатии на фото) — только ключик, текст и кнопка -->
         <div class="keys-section" id="keysSection">
             <img class="key-img" src="https://emoji-cdn.mqrio.dev/🔑?style=telegram" alt="key">
             <h3>Чтобы открыть фотографию<br>нужно собрать 3 ключика</h3>
@@ -338,6 +338,68 @@
             tg.setHeaderColor('#334154');
             tg.setBackgroundColor('#334154');
         }
+
+        // --- Свайп для закрытия панели ---
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+        const panel = document.getElementById('questPanel');
+        const handle = document.getElementById('panelHandle');
+
+        handle.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            panel.style.transition = 'none';
+        }, { passive: true });
+
+        handle.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const delta = currentY - startY;
+            if (delta > 0) {
+                panel.style.transform = `translateY(${delta}px)`;
+            }
+        }, { passive: true });
+
+        handle.addEventListener('touchend', function(e) {
+            isDragging = false;
+            panel.style.transition = 'transform 0.3s ease';
+            const delta = currentY - startY;
+            if (delta > 80) {
+                closeQuestPanel();
+            } else {
+                panel.style.transform = 'translateY(0)';
+            }
+        }, { passive: true });
+
+        // Также свайп по всей панели
+        panel.addEventListener('touchstart', function(e) {
+            if (e.target.closest('.keys-section') || e.target.closest('.quest-photo')) return;
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            panel.style.transition = 'none';
+        }, { passive: true });
+
+        panel.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const delta = currentY - startY;
+            if (delta > 0) {
+                panel.style.transform = `translateY(${delta}px)`;
+            }
+        }, { passive: true });
+
+        panel.addEventListener('touchend', function(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            panel.style.transition = 'transform 0.3s ease';
+            const delta = currentY - startY;
+            if (delta > 80) {
+                closeQuestPanel();
+            } else {
+                panel.style.transform = 'translateY(0)';
+            }
+        }, { passive: true });
 
         function toRad(deg) {
             return deg * Math.PI / 180;
@@ -429,19 +491,22 @@
             document.getElementById('questDistance').textContent = formatDistance(point.distance);
             document.getElementById('questImg').src = point.photo;
 
-            // Сбросить состояние — показать фото, скрыть ключики
-            document.getElementById('questPhotoBlock').style.display = 'block';
+            // Сбросить состояние — показать инфо, скрыть ключики
+            document.getElementById('questInfoBlock').style.display = 'block';
             document.getElementById('keysSection').classList.remove('active');
 
-            document.getElementById('questPanel').classList.add('active');
+            panel.classList.add('active');
+            panel.style.transform = 'translateY(0)';
         }
 
         function closeQuestPanel() {
-            document.getElementById('questPanel').classList.remove('active');
+            panel.classList.remove('active');
+            panel.style.transform = 'translateY(100%)';
         }
 
         function showKeysInPanel() {
-            document.getElementById('questPhotoBlock').style.display = 'none';
+            // Скрыть инфо о квесте, показать только ключик, текст и кнопку
+            document.getElementById('questInfoBlock').style.display = 'none';
             document.getElementById('keysSection').classList.add('active');
         }
 
@@ -454,7 +519,7 @@
             }, 500);
         }
 
-        function refreshLocation() {
+        function refreshAndFocus() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -467,12 +532,6 @@
                     null,
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
-            }
-        }
-
-        function focusLocation() {
-            if (userPos) {
-                map.setView([userPos.lat, userPos.lng], 14);
             }
         }
 
