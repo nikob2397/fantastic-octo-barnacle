@@ -919,7 +919,6 @@
         function handleStartAppParam() {
             const startParam = tg.initDataUnsafe?.start_param;
             if (!startParam) {
-                // Проверяем прерванную авторизацию
                 restoreAuthState();
                 return;
             }
@@ -933,22 +932,15 @@
             } else if (startParam.startsWith('success_map_')) {
                 const targetUserId = parseInt(startParam.split('_')[2]);
                 if (targetUserId === currentUserId) {
-                    // Успех! Разблокируем квест
                     const pendingQuest = localStorage.getItem(`map_auth_quest_${currentUserId}`);
                     if (pendingQuest !== null) {
                         questUnlocked[pendingQuest] = true;
                         localStorage.setItem('questUnlocked', JSON.stringify(questUnlocked));
                     }
-                    // Очищаем флаги
                     localStorage.removeItem(`map_auth_pending_${currentUserId}`);
                     localStorage.removeItem(`map_auth_quest_${currentUserId}`);
-
                     showToast('Квест разблокирован!', 'success');
-
-                    // Обновляем UI
                     updateLockOverlay();
-
-                    // Очищаем URL
                     if (window.history.replaceState) {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
@@ -1200,8 +1192,14 @@
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    // Сохраняем в localStorage
+                    localStorage.setItem('lastLat', lat.toString());
+                    localStorage.setItem('lastLng', lng.toString());
+                    localStorage.setItem('lastLocTime', Date.now().toString());
                     document.getElementById('loading').classList.add('hidden');
-                    initMap(position.coords.latitude, position.coords.longitude);
+                    initMap(lat, lng);
                     handleStartAppParam();
                 },
                 (error) => {
@@ -1223,13 +1221,49 @@
             );
         }
 
+        function loadCachedLocation() {
+            const lat = localStorage.getItem('lastLat');
+            const lng = localStorage.getItem('lastLng');
+            const time = localStorage.getItem('lastLocTime');
+            if (lat && lng && time) {
+                const age = Date.now() - parseInt(time);
+                // Кэш валиден 24 часа
+                if (age < 24 * 60 * 60 * 1000) {
+                    return { lat: parseFloat(lat), lng: parseFloat(lng) };
+                }
+            }
+            return null;
+        }
+
         function showError(msg) {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('errorText').textContent = msg;
             document.getElementById('error').classList.add('active');
         }
 
-        initLocation();
+        // Проверяем start_param ПЕРЕД геолокацией
+        const startParam = tg.initDataUnsafe?.start_param;
+        const isPasswordScreen = startParam && startParam.startsWith('enterPassword_map_');
+
+        if (isPasswordScreen) {
+            // Не запрашиваем геолокацию, сразу показываем экран пароля
+            document.getElementById('loading').classList.add('hidden');
+            const targetUserId = parseInt(startParam.split('_')[3]);
+            if (targetUserId === currentUserId) {
+                passwordScreen.classList.add('active');
+                tg.setHeaderColor("#1a1d29");
+            }
+        } else {
+            // Проверяем кэш геопозиции
+            const cached = loadCachedLocation();
+            if (cached) {
+                document.getElementById('loading').classList.add('hidden');
+                initMap(cached.lat, cached.lng);
+                handleStartAppParam();
+            } else {
+                initLocation();
+            }
+        }
     </script>
 </body>
 </html>
