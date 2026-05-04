@@ -46,64 +46,173 @@
             color: #1a1a2e !important;
         }
 
-        .info-panel {
+        /* Bottom Sheet */
+        .bottom-sheet {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #2c3e50;
+            border-radius: 24px 24px 0 0;
+            padding: 20px 20px 30px 20px;
             z-index: 1000;
-            min-width: 280px;
-            max-width: 90vw;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+
+        .bottom-sheet .handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin: 0 auto 20px auto;
+        }
+
+        .bottom-sheet h2 {
+            color: #ffffff;
+            font-size: 22px;
             text-align: center;
-            display: none;
-            backdrop-filter: blur(10px);
-            border: 1px solid #e0e0e0;
+            margin-bottom: 6px;
         }
 
-        .info-panel.active {
-            display: block;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from { transform: translateX(-50%) translateY(20px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-
-        .info-panel h3 {
-            font-size: 16px;
-            color: #1a1a2e;
-            margin-bottom: 8px;
-        }
-
-        .info-panel p {
+        .bottom-sheet .subtitle {
+            color: #a0aec0;
             font-size: 14px;
-            color: #555;
-            margin: 4px 0;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
-        .info-panel .distance {
-            font-size: 24px;
-            font-weight: bold;
-            color: #e74c3c;
-            margin: 8px 0;
+        .bottom-sheet .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
         }
 
-        .close-btn {
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            background: none;
-            border: none;
+        .bottom-sheet .coords {
+            color: #e2e8f0;
+            font-size: 15px;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .bottom-sheet .distance {
+            color: #4ade80;
             font-size: 20px;
-            color: #999;
-            cursor: pointer;
+            font-weight: bold;
         }
 
+        /* Photo container */
+        .photo-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            cursor: pointer;
+            background: #1a202c;
+        }
+
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(12px) brightness(0.6);
+            transition: filter 0.3s ease;
+        }
+
+        .photo-container .eye-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            fill: white;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        /* Keys overlay */
+        .keys-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .keys-overlay.active {
+            display: flex;
+        }
+
+        .keys-modal {
+            background: #2c3e50;
+            border-radius: 24px;
+            padding: 30px 25px;
+            text-align: center;
+            width: 100%;
+            max-width: 340px;
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .keys-modal h3 {
+            color: #ffffff;
+            font-size: 18px;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+
+        .keys-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .key-icon {
+            width: 50px;
+            height: 50px;
+        }
+
+        .collect-btn {
+            width: 100%;
+            padding: 16px;
+            background: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+        }
+
+        .collect-btn:active {
+            background: #2563eb;
+            transform: scale(0.98);
+        }
+
+        /* Loading */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -212,12 +321,43 @@
         <button class="retry-btn" onclick="initLocation()">Повторить</button>
     </div>
 
-    <div class="info-panel" id="infoPanel">
-        <button class="close-btn" onclick="closeInfo()">×</button>
-        <h3>📍 Случайная точка</h3>
-        <p id="infoCoords">Координаты: --</p>
-        <p class="distance" id="infoDistance">--</p>
-        <p>от вашего местоположения</p>
+    <!-- Bottom Sheet -->
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="handle"></div>
+        <h2 id="bsTitle">Квест #5315</h2>
+        <p class="subtitle" id="bsSubtitle">Содержимое: 1500 ₽</p>
+
+        <div class="info-row">
+            <span class="coords" id="bsCoords">62.596381, 39.910516</span>
+            <span class="distance" id="bsDistance">1.5 км</span>
+        </div>
+
+        <div class="photo-container" id="photoContainer" onclick="showKeys()">
+            <img id="bsPhoto" src="" alt="Quest photo">
+            <svg class="eye-icon" viewBox="0 0 24 24">
+                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                <line x1="1" y1="1" x2="23" y2="23" stroke="white" stroke-width="2"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Keys Modal -->
+    <div class="keys-overlay" id="keysOverlay" onclick="if(event.target===this)closeKeys()">
+        <div class="keys-modal">
+            <h3>Чтобы открыть фотографию<br>нужно собрать 3 ключика</h3>
+            <div class="keys-row">
+                <svg class="key-icon" viewBox="0 0 24 24" fill="#fbbf24">
+                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/>
+                </svg>
+                <svg class="key-icon" viewBox="0 0 24 24" fill="#fbbf24">
+                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/>
+                </svg>
+                <svg class="key-icon" viewBox="0 0 24 24" fill="#fbbf24">
+                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/>
+                </svg>
+            </div>
+            <a href="https://t.me/Geo_Cash_Bot?start=get_keys" class="collect-btn">Собрать</a>
+        </div>
     </div>
 
     <div class="legend">
@@ -284,18 +424,40 @@
             if (km < 1) {
                 return `${(km * 1000).toFixed(0)} м`;
             }
-            return `${km.toFixed(2)} км`;
+            return `${km.toFixed(1)} км`;
         }
 
-        function showInfo(point, distance) {
-            document.getElementById('infoCoords').textContent = `Координаты: ${formatCoords(point.lat, point.lng)}`;
-            document.getElementById('infoDistance').textContent = formatDistance(distance);
-            document.getElementById('infoPanel').classList.add('active');
+        function showBottomSheet(point, distance, questNum, photoSrc) {
+            document.getElementById('bsTitle').textContent = `Квест #${questNum}`;
+            document.getElementById('bsCoords').textContent = formatCoords(point.lat, point.lng);
+            document.getElementById('bsDistance').textContent = formatDistance(distance);
+            document.getElementById('bsPhoto').src = photoSrc;
+            document.getElementById('bottomSheet').classList.add('active');
         }
 
-        function closeInfo() {
-            document.getElementById('infoPanel').classList.remove('active');
+        function closeBottomSheet() {
+            document.getElementById('bottomSheet').classList.remove('active');
         }
+
+        function showKeys() {
+            document.getElementById('keysOverlay').classList.add('active');
+        }
+
+        function closeKeys() {
+            document.getElementById('keysOverlay').classList.remove('active');
+        }
+
+        // Close bottom sheet on swipe down or click outside
+        let startY = 0;
+        document.getElementById('bottomSheet').addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
+        document.getElementById('bottomSheet').addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            if (currentY - startY > 80) {
+                closeBottomSheet();
+            }
+        });
 
         function initMap(lat, lng) {
             userPos = { lat, lng };
@@ -305,13 +467,11 @@
                 attributionControl: false
             }).setView([lat, lng], 14);
 
-            // Стандартная светлая карта OpenStreetMap — бесплатно, без API ключей
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
-            // Маркер пользователя (синий)
             const userIcon = L.divIcon({
                 className: 'user-marker',
                 html: '<div style="width:20px;height:20px;background:#3498db;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
@@ -322,7 +482,6 @@
             userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
             userMarker.bindPopup('<b>📍 Вы здесь</b><br>' + formatCoords(lat, lng)).openPopup();
 
-            // 2 случайные точки (красные)
             const randomIcon = L.divIcon({
                 className: 'random-marker',
                 html: '<div style="width:24px;height:24px;background:#e74c3c;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">?</div>',
@@ -330,19 +489,24 @@
                 iconAnchor: [12, 12]
             });
 
+            const photos = ['1.png', '2.png'];
+
             for (let i = 0; i < 2; i++) {
                 const point = getRandomPoint(lat, lng, MIN_RANDOM_KM, MAX_RANDOM_KM);
                 const dist = haversine(lat, lng, point.lat, point.lng);
+                const questNum = 5315 + i;
 
                 const marker = L.marker([point.lat, point.lng], { icon: randomIcon }).addTo(map);
-                marker.on('click', () => showInfo(point, dist));
+                marker.on('click', () => showBottomSheet(point, dist, questNum, photos[i]));
                 randomMarkers.push(marker);
             }
 
-            // Ограничить просмотр в пределах 4 км (без визуального круга)
             const bounds = L.latLng(lat, lng).toBounds(RADIUS_KM * 2000);
             map.setMaxBounds(bounds);
             map.options.minZoom = 12;
+
+            // Close bottom sheet when clicking on map
+            map.on('click', closeBottomSheet);
         }
 
         function initLocation() {
@@ -388,7 +552,6 @@
             document.getElementById('error').classList.add('active');
         }
 
-        // Запуск
         initLocation();
     </script>
 </body>
