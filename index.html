@@ -128,8 +128,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: blur(12px);
-            transition: filter 0.3s;
+            /* Без blur — фото сами по себе заблюрены */
         }
 
         .quest-photo .eye-icon {
@@ -147,7 +146,7 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            padding: 10px 0;
+            padding: 20px 0;
         }
 
         .keys-section.active {
@@ -155,16 +154,16 @@
         }
 
         .keys-section .key-img {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 15px;
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
         }
 
         .keys-section h3 {
             color: #e2e8f0;
-            font-size: 18px;
+            font-size: 20px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             line-height: 1.4;
         }
 
@@ -182,6 +181,31 @@
             text-decoration: none;
             display: inline-block;
             text-align: center;
+        }
+
+        /* --- КНОПКИ УПРАВЛЕНИЯ (правый верхний угол) --- */
+        .controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            color: #334154;
         }
 
         /* --- ЗАГРУЗКА / ОШИБКА --- */
@@ -250,37 +274,16 @@
             font-weight: 600;
             cursor: pointer;
         }
-
-        .legend {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            color: #1a1a2e;
-            border: 1px solid #e0e0e0;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 4px 0;
-        }
-
-        .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+
+    <!-- Кнопки управления -->
+    <div class="controls">
+        <button class="control-btn" onclick="refreshLocation()" title="Обновить локацию">🔄</button>
+        <button class="control-btn" onclick="focusLocation()" title="Фокус на локации">📍</button>
+    </div>
 
     <div class="loading-overlay" id="loading">
         <div class="spinner"></div>
@@ -295,7 +298,7 @@
 
     <!-- Панель квеста -->
     <div class="quest-panel" id="questPanel">
-        <div class="handle"></div>
+        <div class="handle" onclick="closeQuestPanel()"></div>
         <h2 id="questTitle">Квест #----</h2>
         <p class="reward" id="questReward">Содержимое: ---- ₽</p>
         <div class="info-row">
@@ -314,17 +317,6 @@
             <img class="key-img" src="https://emoji-cdn.mqrio.dev/🔑?style=telegram" alt="key">
             <h3>Чтобы открыть фотографию<br>нужно собрать 3 ключика</h3>
             <a href="https://t.me/Geo_Cash_Bot?start=get_keys" class="collect-btn" onclick="closeWebApp()">Собрать</a>
-        </div>
-    </div>
-
-    <div class="legend">
-        <div class="legend-item">
-            <div class="legend-dot" style="background:#3498db;"></div>
-            <span>Вы здесь</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-dot" style="background:#e74c3c;"></div>
-            <span>Случайные точки</span>
         </div>
     </div>
 
@@ -449,7 +441,6 @@
         }
 
         function showKeysInPanel() {
-            // Скрыть фото, показать секцию ключиков внутри той же панели
             document.getElementById('questPhotoBlock').style.display = 'none';
             document.getElementById('keysSection').classList.add('active');
         }
@@ -461,6 +452,28 @@
             setTimeout(() => {
                 window.close();
             }, 500);
+        }
+
+        function refreshLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        userPos = { lat, lng };
+                        userMarker.setLatLng([lat, lng]);
+                        map.setView([lat, lng], 14);
+                    },
+                    null,
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            }
+        }
+
+        function focusLocation() {
+            if (userPos) {
+                map.setView([userPos.lat, userPos.lng], 14);
+            }
         }
 
         function initMap(lat, lng) {
