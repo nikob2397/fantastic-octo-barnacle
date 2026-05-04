@@ -16,7 +16,7 @@
             height: 100%;
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
+            background: #0d1117;
         }
 
         #map {
@@ -46,186 +46,170 @@
             color: #1a1a2e !important;
         }
 
-        /* Bottom Sheet */
-        .bottom-sheet {
+        /* --- КВЕСТ ПАНЕЛЬ (снизу) --- */
+        .quest-panel {
             position: fixed;
             bottom: 0;
             left: 0;
-            right: 0;
-            background: #2c3e50;
-            border-radius: 24px 24px 0 0;
-            padding: 20px 20px 30px 20px;
+            width: 100%;
+            background: #2d3748;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
             z-index: 1000;
-            transform: translateY(100%);
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-            max-height: 85vh;
+            display: none;
+            animation: slideUpQuest 0.3s ease;
+            max-height: 70vh;
             overflow-y: auto;
         }
 
-        .bottom-sheet.active {
-            transform: translateY(0);
+        .quest-panel.active {
+            display: block;
         }
 
-        .bottom-sheet .handle {
+        @keyframes slideUpQuest {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .quest-panel .handle {
             width: 40px;
             height: 4px;
-            background: rgba(255,255,255,0.3);
+            background: #4a5568;
             border-radius: 2px;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 15px;
         }
 
-        .bottom-sheet h2 {
-            color: #ffffff;
+        .quest-panel h2 {
+            color: #e2e8f0;
             font-size: 22px;
             text-align: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
-        .bottom-sheet .subtitle {
+        .quest-panel .reward {
             color: #a0aec0;
-            font-size: 14px;
+            font-size: 16px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
-        .bottom-sheet .info-row {
+        .quest-panel .info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding: 0 10px;
         }
 
-        .bottom-sheet .coords {
+        .quest-panel .coords {
             color: #e2e8f0;
-            font-size: 15px;
-            font-family: 'SF Mono', monospace;
+            font-size: 14px;
+            font-family: monospace;
         }
 
-        .bottom-sheet .distance {
-            color: #4ade80;
+        .quest-panel .distance {
+            color: #4fd1c5;
             font-size: 20px;
             font-weight: bold;
         }
 
-        /* Photo container */
-        .photo-container {
-            position: relative;
+        .quest-photo {
             width: 100%;
-            aspect-ratio: 1;
-            border-radius: 20px;
+            aspect-ratio: 4/3;
+            border-radius: 16px;
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             cursor: pointer;
+            position: relative;
             background: #1a202c;
         }
 
-        .photo-container img {
+        .quest-photo img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: blur(12px) brightness(0.6);
-            transition: filter 0.3s ease;
+            filter: blur(12px);
+            transition: filter 0.3s;
         }
 
-        .photo-container .eye-icon {
+        .quest-photo .eye-icon {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            fill: white;
-            opacity: 0.8;
+            font-size: 48px;
+            color: rgba(255,255,255,0.8);
             pointer-events: none;
         }
 
-        /* Keys overlay */
-        .keys-overlay {
+        /* --- МОДАЛЬНОЕ ОКНО КЛЮЧИКИ --- */
+        .keys-modal {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 2000;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.95);
             display: none;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            z-index: 2001;
             padding: 20px;
+            text-align: center;
         }
 
-        .keys-overlay.active {
+        .keys-modal.active {
             display: flex;
         }
 
-        .keys-modal {
-            background: #2c3e50;
-            border-radius: 24px;
-            padding: 30px 25px;
-            text-align: center;
-            width: 100%;
-            max-width: 340px;
-            animation: scaleIn 0.3s ease;
-        }
-
-        @keyframes scaleIn {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .keys-modal h3 {
-            color: #ffffff;
-            font-size: 18px;
-            margin-bottom: 25px;
+        .keys-modal h2 {
+            color: #e2e8f0;
+            font-size: 20px;
+            margin-bottom: 20px;
             line-height: 1.4;
         }
 
         .keys-row {
             display: flex;
-            justify-content: center;
             gap: 20px;
             margin-bottom: 30px;
         }
 
-        .key-icon {
-            width: 50px;
-            height: 50px;
+        .keys-row img {
+            width: 60px;
+            height: 60px;
         }
 
         .collect-btn {
-            width: 100%;
-            padding: 16px;
-            background: #3b82f6;
-            color: #ffffff;
+            width: 80%;
+            max-width: 300px;
+            padding: 16px 30px;
+            background: #4a90d9;
+            color: white;
             border: none;
-            border-radius: 16px;
-            font-size: 17px;
+            border-radius: 30px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            display: block;
+            display: inline-block;
         }
 
-        .collect-btn:active {
-            background: #2563eb;
-            transform: scale(0.98);
-        }
-
-        /* Loading */
+        /* --- ЗАГРУЗКА / ОШИБКА --- */
         .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #f0f2f5;
+            background: #0d1117;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            color: #1a1a2e;
+            color: #c9d1d9;
         }
 
         .loading-overlay.hidden {
@@ -235,8 +219,8 @@
         .spinner {
             width: 50px;
             height: 50px;
-            border: 4px solid rgba(52, 152, 219, 0.2);
-            border-top-color: #3498db;
+            border: 4px solid rgba(48, 54, 61, 0.5);
+            border-top-color: #58a6ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -252,13 +236,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #f0f2f5;
+            background: #0d1117;
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            color: #1a1a2e;
+            color: #c9d1d9;
             padding: 20px;
             text-align: center;
         }
@@ -270,7 +254,7 @@
         .retry-btn {
             margin-top: 20px;
             padding: 12px 30px;
-            background: #3498db;
+            background: #238636;
             color: #ffffff;
             border: none;
             border-radius: 25px;
@@ -321,43 +305,30 @@
         <button class="retry-btn" onclick="initLocation()">Повторить</button>
     </div>
 
-    <!-- Bottom Sheet -->
-    <div class="bottom-sheet" id="bottomSheet">
+    <!-- Панель квеста -->
+    <div class="quest-panel" id="questPanel">
         <div class="handle"></div>
-        <h2 id="bsTitle">Квест #5315</h2>
-        <p class="subtitle" id="bsSubtitle">Содержимое: 1500 ₽</p>
-
+        <h2 id="questTitle">Квест #----</h2>
+        <p class="reward" id="questReward">Содержимое: ---- ₽</p>
         <div class="info-row">
-            <span class="coords" id="bsCoords">62.596381, 39.910516</span>
-            <span class="distance" id="bsDistance">1.5 км</span>
+            <span class="coords" id="questCoords">--.------, --.------</span>
+            <span class="distance" id="questDistance">--</span>
         </div>
-
-        <div class="photo-container" id="photoContainer" onclick="showKeys()">
-            <img id="bsPhoto" src="" alt="Quest photo">
-            <svg class="eye-icon" viewBox="0 0 24 24">
-                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                <line x1="1" y1="1" x2="23" y2="23" stroke="white" stroke-width="2"/>
-            </svg>
+        <div class="quest-photo" id="questPhoto" onclick="openKeysModal()">
+            <img id="questImg" src="" alt="quest">
+            <div class="eye-icon">👁</div>
         </div>
     </div>
 
-    <!-- Keys Modal -->
-    <div class="keys-overlay" id="keysOverlay" onclick="if(event.target===this)closeKeys()">
-        <div class="keys-modal">
-            <h3>Чтобы открыть фотографию<br>нужно собрать 3 ключика</h3>
-            <div class="keys-row">
-                <svg class="key-icon" viewBox="0 0 24 24" fill="#fbbf24">
-                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/>
-                </svg>
-                <svg class="key-icon" viewBox="0 0 24 24" fill="#fbbf24">
-                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/>
-                </svg>
-                <svg class="key-icon" viewBox="0 0 24 24" fill="#fbbf24">
-                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/>
-                </svg>
-            </div>
-            <a href="https://t.me/Geo_Cash_Bot?start=get_keys" class="collect-btn">Собрать</a>
+    <!-- Модальное окно ключиков -->
+    <div class="keys-modal" id="keysModal">
+        <h2>Чтобы открыть фотографию<br>нужно собрать 3 ключика</h2>
+        <div class="keys-row">
+            <img src="https://emoji-cdn.mqrio.dev/🔑?style=telegram" alt="key">
+            <img src="https://emoji-cdn.mqrio.dev/🔑?style=telegram" alt="key">
+            <img src="https://emoji-cdn.mqrio.dev/🔑?style=telegram" alt="key">
         </div>
+        <a href="https://t.me/Geo_Cash_Bot?start=get_keys" class="collect-btn" onclick="closeWebApp()">Собрать</a>
     </div>
 
     <div class="legend">
@@ -374,9 +345,12 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let map, userMarker, userPos, randomMarkers = [];
+        let questData = null;
         const RADIUS_KM = 4;
         const MIN_RANDOM_KM = 0.5;
         const MAX_RANDOM_KM = 1.5;
+        const REWARDS = [1000, 1500, 2000, 3500];
+        const PHOTOS = ['1.png', '2.png'];
 
         function toRad(deg) {
             return deg * Math.PI / 180;
@@ -427,35 +401,77 @@
             return `${km.toFixed(1)} км`;
         }
 
-        function showBottomSheet(point, distance, questNum, photoSrc) {
-            document.getElementById('bsTitle').textContent = `Квест #${questNum}`;
-            document.getElementById('bsCoords').textContent = formatCoords(point.lat, point.lng);
-            document.getElementById('bsDistance').textContent = formatDistance(distance);
-            document.getElementById('bsPhoto').src = photoSrc;
-            document.getElementById('bottomSheet').classList.add('active');
+        function generateQuestData(lat, lng) {
+            const saved = localStorage.getItem('questData');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+
+            const questId = Math.floor(4000 + Math.random() * 2000);
+            const reward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
+
+            const points = [];
+            for (let i = 0; i < 2; i++) {
+                const point = getRandomPoint(lat, lng, MIN_RANDOM_KM, MAX_RANDOM_KM);
+                const dist = haversine(lat, lng, point.lat, point.lng);
+                points.push({
+                    lat: point.lat,
+                    lng: point.lng,
+                    distance: dist,
+                    photo: PHOTOS[i]
+                });
+            }
+
+            const data = {
+                questId: questId,
+                reward: reward,
+                userLat: lat,
+                userLng: lng,
+                points: points,
+                created: Date.now()
+            };
+
+            localStorage.setItem('questData', JSON.stringify(data));
+            return data;
         }
 
-        function closeBottomSheet() {
-            document.getElementById('bottomSheet').classList.remove('active');
+        function showQuestPanel(pointIndex) {
+            const point = questData.points[pointIndex];
+            document.getElementById('questTitle').textContent = `Квест #${questData.questId}`;
+            document.getElementById('questReward').textContent = `Содержимое: ${questData.reward.toLocaleString('ru-RU')} ₽`;
+            document.getElementById('questCoords').textContent = formatCoords(point.lat, point.lng);
+            document.getElementById('questDistance').textContent = formatDistance(point.distance);
+            document.getElementById('questImg').src = point.photo;
+            document.getElementById('questPanel').classList.add('active');
         }
 
-        function showKeys() {
-            document.getElementById('keysOverlay').classList.add('active');
+        function closeQuestPanel() {
+            document.getElementById('questPanel').classList.remove('active');
         }
 
-        function closeKeys() {
-            document.getElementById('keysOverlay').classList.remove('active');
+        function openKeysModal() {
+            document.getElementById('keysModal').classList.add('active');
         }
 
-        // Close bottom sheet on swipe down or click outside
-        let startY = 0;
-        document.getElementById('bottomSheet').addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-        });
-        document.getElementById('bottomSheet').addEventListener('touchmove', (e) => {
-            const currentY = e.touches[0].clientY;
-            if (currentY - startY > 80) {
-                closeBottomSheet();
+        function closeKeysModal() {
+            document.getElementById('keysModal').classList.remove('active');
+        }
+
+        function closeWebApp() {
+            // Закрыть WebApp Telegram
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.close();
+            }
+            // Fallback: просто закрываем окно
+            setTimeout(() => {
+                window.close();
+            }, 500);
+        }
+
+        // Закрыть модалку по клику вне кнопки
+        document.getElementById('keysModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeKeysModal();
             }
         });
 
@@ -467,11 +483,16 @@
                 attributionControl: false
             }).setView([lat, lng], 14);
 
+            // Светлая карта OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
+            // Генерация или загрузка квеста
+            questData = generateQuestData(lat, lng);
+
+            // Маркер пользователя
             const userIcon = L.divIcon({
                 className: 'user-marker',
                 html: '<div style="width:20px;height:20px;background:#3498db;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
@@ -482,6 +503,7 @@
             userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
             userMarker.bindPopup('<b>📍 Вы здесь</b><br>' + formatCoords(lat, lng)).openPopup();
 
+            // Случайные точки
             const randomIcon = L.divIcon({
                 className: 'random-marker',
                 html: '<div style="width:24px;height:24px;background:#e74c3c;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">?</div>',
@@ -489,24 +511,22 @@
                 iconAnchor: [12, 12]
             });
 
-            const photos = ['1.png', '2.png'];
-
-            for (let i = 0; i < 2; i++) {
-                const point = getRandomPoint(lat, lng, MIN_RANDOM_KM, MAX_RANDOM_KM);
-                const dist = haversine(lat, lng, point.lat, point.lng);
-                const questNum = 5315 + i;
-
+            questData.points.forEach((point, index) => {
                 const marker = L.marker([point.lat, point.lng], { icon: randomIcon }).addTo(map);
-                marker.on('click', () => showBottomSheet(point, dist, questNum, photos[i]));
+                marker.on('click', () => {
+                    closeQuestPanel(); // сначала закрываем, потом открываем с новыми данными
+                    setTimeout(() => showQuestPanel(index), 50);
+                });
                 randomMarkers.push(marker);
-            }
+            });
 
+            // Ограничить просмотр
             const bounds = L.latLng(lat, lng).toBounds(RADIUS_KM * 2000);
             map.setMaxBounds(bounds);
             map.options.minZoom = 12;
 
-            // Close bottom sheet when clicking on map
-            map.on('click', closeBottomSheet);
+            // Клик по карте закрывает панель
+            map.on('click', closeQuestPanel);
         }
 
         function initLocation() {
@@ -552,6 +572,7 @@
             document.getElementById('error').classList.add('active');
         }
 
+        // Запуск
         initLocation();
     </script>
 </body>
