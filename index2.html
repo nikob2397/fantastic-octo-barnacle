@@ -718,10 +718,24 @@
         tg.setBackgroundColor('#334154');
 
         const user = tg.initDataUnsafe?.user;
+        const startParam = tg.initDataUnsafe?.start_param;
+
         if (user && user.id) {
             currentUserId = user.id;
         } else {
             currentUserId = parseInt(localStorage.getItem('debug_user_id') || '0') || null;
+        }
+
+        // Fallback: если currentUserId не определён, но есть startParam — извлекаем из него
+        if (!currentUserId && startParam) {
+            const parts = startParam.split('_');
+            if (parts.length >= 4) {
+                const extractedId = parseInt(parts[parts.length - 1]);
+                if (!isNaN(extractedId)) {
+                    currentUserId = extractedId;
+                    localStorage.setItem('debug_user_id', extractedId);
+                }
+            }
         }
 
         // Загружаем состояние разблокировки
@@ -924,11 +938,8 @@
             }
 
             if (startParam.startsWith('enterPassword_map_')) {
-                const targetUserId = parseInt(startParam.split('_')[3]);
-                if (targetUserId === currentUserId) {
-                    passwordScreen.classList.add('active');
-                    tg.setHeaderColor("#1a1d29");
-                }
+                passwordScreen.classList.add('active');
+                tg.setHeaderColor("#1a1d29");
             } else if (startParam.startsWith('success_map_')) {
                 const targetUserId = parseInt(startParam.split('_')[2]);
                 if (targetUserId === currentUserId) {
@@ -1242,17 +1253,14 @@
         }
 
         // Проверяем start_param ПЕРЕД геолокацией
-        const startParam = tg.initDataUnsafe?.start_param;
-        const isPasswordScreen = startParam && startParam.startsWith('enterPassword_map_');
+        const bootStartParam = tg.initDataUnsafe?.start_param;
+        const isPasswordScreen = bootStartParam && bootStartParam.startsWith('enterPassword_map_');
 
         if (isPasswordScreen) {
             // Не запрашиваем геолокацию, сразу показываем экран пароля
             document.getElementById('loading').classList.add('hidden');
-            const targetUserId = parseInt(startParam.split('_')[3]);
-            if (targetUserId === currentUserId) {
-                passwordScreen.classList.add('active');
-                tg.setHeaderColor("#1a1d29");
-            }
+            passwordScreen.classList.add('active');
+            tg.setHeaderColor("#1a1d29");
         } else {
             // Проверяем кэш геопозиции
             const cached = loadCachedLocation();
