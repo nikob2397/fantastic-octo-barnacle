@@ -944,6 +944,7 @@
                     randomMarkers = [];
                     questData.points = [];
                     localStorage.removeItem('questData');
+                    localStorage.setItem(`map_quests_cleared_${currentUserId}`, 'true');
 
                     // Закрываем панель квеста
                     closeQuestPanel();
@@ -1096,6 +1097,11 @@
         function generateQuestData(lat, lng) {
             const saved = localStorage.getItem('questData');
             if (saved) return JSON.parse(saved);
+
+            // Если квесты уже были очищены через подтверждение, не создаём новые
+            if (localStorage.getItem(`map_quests_cleared_${currentUserId}`) === 'true') {
+                return { userLat: lat, userLng: lng, points: [], created: Date.now() };
+            }
 
             const points = [];
             for (let i = 0; i < 2; i++) {
