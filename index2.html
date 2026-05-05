@@ -889,9 +889,13 @@
         }
 
         function startAuthFlow() {
-            // Сохраняем флаг авторизации
+            // Сохраняем флаг авторизации и ID квеста
             localStorage.setItem(`map_auth_pending_${currentUserId}`, 'true');
             localStorage.setItem(`map_auth_quest_${currentUserId}`, currentPointIndex);
+            const point = questData.points[currentPointIndex];
+            if (point) {
+                localStorage.setItem(`map_auth_quest_id_${currentUserId}`, point.questId);
+            }
 
             // Открываем бота для создания сессии
             tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=createSession_map_${currentUserId}`);
@@ -918,14 +922,33 @@
                 const targetUserId = parseInt(startParam.split('_')[2]);
                 if (targetUserId === currentUserId) {
                     const pendingQuest = localStorage.getItem(`map_auth_quest_${currentUserId}`);
+                    const pendingQuestId = localStorage.getItem(`map_auth_quest_id_${currentUserId}`);
+
                     if (pendingQuest !== null) {
                         questUnlocked[pendingQuest] = true;
                         localStorage.setItem('questUnlocked', JSON.stringify(questUnlocked));
                     }
+
                     localStorage.removeItem(`map_auth_pending_${currentUserId}`);
                     localStorage.removeItem(`map_auth_quest_${currentUserId}`);
-                    showToast('Квест разблокирован!', 'success');
-                            if (window.history.replaceState) {
+                    localStorage.removeItem(`map_auth_quest_id_${currentUserId}`);
+
+                    showToast('Этот квест уже открыл другой пользователь', 'error');
+
+                    // Удаляем все точки квеста с карты
+                    questData.points.forEach((point, index) => {
+                        if (randomMarkers[index]) {
+                            map.removeLayer(randomMarkers[index]);
+                        }
+                    });
+                    randomMarkers = [];
+                    questData.points = [];
+                    localStorage.removeItem('questData');
+
+                    // Закрываем панель квеста
+                    closeQuestPanel();
+
+                    if (window.history.replaceState) {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
                 }
