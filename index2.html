@@ -690,26 +690,42 @@
         tg.setBackgroundColor('#334154');
 
         const user = tg.initDataUnsafe?.user;
-        const startParam = tg.initDataUnsafe?.start_param;
+        let startParam = tg.initDataUnsafe?.start_param;
 
+        // При возврате из бота startParam может быть пустым, используем сохраненный
+        if (!startParam) {
+            startParam = localStorage.getItem('last_start_param') || null;
+        } else {
+            localStorage.setItem('last_start_param', startParam);
+        }
+
+        // 1. Пробуем получить ID из Telegram user data
         if (user && user.id) {
             currentUserId = user.id;
             localStorage.setItem('debug_user_id', currentUserId);
-        } else {
-            currentUserId = parseInt(localStorage.getItem('debug_user_id') || '0') || null;
         }
-
-        // Fallback: извлекаем ID из startParam для success_map_, retry_map_, enterPassword_map_
+        // 2. Пробуем получить ID из localStorage
+        else {
+            const savedId = localStorage.getItem('debug_user_id');
+            if (savedId) {
+                currentUserId = parseInt(savedId);
+            }
+        }
+        // 3. Fallback: извлекаем ID из startParam (для success_map_, retry_map_, enterPassword_map_)
         if (!currentUserId && startParam) {
             const parts = startParam.split('_');
-            if (parts.length >= 3 && (parts[0] === 'success' || parts[0] === 'retry' || parts[0] === 'enterPassword')) {
-                const extractedId = parseInt(parts[2]);
+            // success_map_123456 → ['success', 'map', '123456']
+            // createSession_map_123456 → ['createSession', 'map', '123456']  
+            if (parts.length >= 3) {
+                const extractedId = parseInt(parts[parts.length - 1]);
                 if (!isNaN(extractedId)) {
                     currentUserId = extractedId;
                     localStorage.setItem('debug_user_id', extractedId);
                 }
             }
         }
+
+        console.log('currentUserId:', currentUserId, 'startParam:', startParam);
 
 
 
@@ -919,8 +935,10 @@
             if (startParam.startsWith('enterPassword_map_')) {
                 passwordScreen.classList.add('active');
                 tg.setHeaderColor("#334154");
+                localStorage.removeItem('last_start_param');
             } else if (startParam.startsWith('success_map_')) {
                 const targetUserId = parseInt(startParam.split('_')[2]);
+                console.log('success_map_ detected, targetUserId:', targetUserId, 'currentUserId:', currentUserId);
                 if (targetUserId === currentUserId) {
                     const pendingQuest = localStorage.getItem(`map_auth_quest_${currentUserId}`);
                     const pendingQuestId = localStorage.getItem(`map_auth_quest_id_${currentUserId}`);
@@ -950,6 +968,8 @@
                     // Закрываем панель квеста
                     closeQuestPanel();
 
+                    localStorage.removeItem('last_start_param');
+
                     if (window.history.replaceState) {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
@@ -958,6 +978,7 @@
                 const targetUserId = parseInt(startParam.split('_')[2]);
                 if (targetUserId === currentUserId) {
                     localStorage.removeItem(`map_auth_pending_${currentUserId}`);
+                    localStorage.removeItem('last_start_param');
                     showToast('Попробуйте снова', 'info');
                 }
             } else {
