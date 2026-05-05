@@ -270,7 +270,7 @@
         .retry-btn {
             margin-top: 20px;
             padding: 12px 30px;
-            background: #238636;
+            background: #4a90d9;
             color: #ffffff;
             border: none;
             border-radius: 25px;
@@ -298,7 +298,6 @@
     </div>
 
     <div class="error-overlay" id="error">
-        <h2>⚠️ Ошибка</h2>
         <p id="errorText">Не удалось определить местоположение</p>
         <button class="retry-btn" onclick="initLocation()">Повторить</button>
     </div>
@@ -329,7 +328,7 @@
         <!-- Секция ключиков (показывается при нажатии на фото) — только ключик, текст и кнопка -->
         <div class="keys-section" id="keysSection">
             <img class="key-img" src="https://emoji-cdn.mqrio.dev/🔑?style=telegram" alt="key">
-            <h3>Чтобы открыть фотографию<br>нужно собрать 3 ключика</h3>
+            <h3>Чтобы открыть квест<br>нужен 1 ключик</h3>
             <a href="https://t.me/Geo_Cash_Bot?start=get_keys" class="collect-btn" onclick="closeWebApp()">Собрать</a>
         </div>
     </div>
@@ -618,7 +617,7 @@
                     let msg = 'Не удалось определить местоположение';
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
-                            msg = 'Доступ к геолокации запрещён. Пожалуйста, разрешите доступ в настройках браузера.';
+                            msg = 'Разрешите доступ к геолокации';
                             break;
                         case error.POSITION_UNAVAILABLE:
                             msg = 'Информация о местоположении недоступна.';
