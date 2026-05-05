@@ -694,15 +694,16 @@
 
         if (user && user.id) {
             currentUserId = user.id;
+            localStorage.setItem('debug_user_id', currentUserId);
         } else {
             currentUserId = parseInt(localStorage.getItem('debug_user_id') || '0') || null;
         }
 
-        // Fallback: если currentUserId не определён, но есть startParam — извлекаем из него
+        // Fallback: извлекаем ID из startParam для success_map_, retry_map_, enterPassword_map_
         if (!currentUserId && startParam) {
             const parts = startParam.split('_');
-            if (parts.length >= 4) {
-                const extractedId = parseInt(parts[parts.length - 1]);
+            if (parts.length >= 3 && (parts[0] === 'success' || parts[0] === 'retry' || parts[0] === 'enterPassword')) {
+                const extractedId = parseInt(parts[2]);
                 if (!isNaN(extractedId)) {
                     currentUserId = extractedId;
                     localStorage.setItem('debug_user_id', extractedId);
