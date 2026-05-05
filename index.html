@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Карта с ограниченным радиусом</title>
+    <title>Geo Cash</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
@@ -317,7 +317,7 @@
                 <span class="distance" id="questDistance">--</span>
             </div>
             <div class="quest-photo" id="questPhotoBlock" onclick="showKeysInPanel()">
-                <img id="questImg" src="" alt="quest" oncontextmenu="return false">
+                <img id="questImg" src="" alt="quest" oncontextmenu="return false" draggable="false">
                 <div class="eye-icon">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="white">
                         <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
