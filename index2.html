@@ -516,7 +516,7 @@
         .toast-info .toast-icon { color: #60a5fa; }
         .toast-message { color: #ffffff; font-size: 14px; line-height: 1.4; flex: 1; }
 
-        /* ===== SPINNER ===== */
+        /* ===== SPINNERS ===== */
         .spinner {
             display: inline-block;
             width: 40px;
@@ -527,6 +527,31 @@
             animation: spin-anim 0.8s linear infinite;
         }
         @keyframes spin-anim { to { transform: rotate(360deg); } }
+
+        /* Button spinner - smaller, for inline use */
+        .btn-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin-anim 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        /* Photo spinner - medium size for eye-icon area */
+        .photo-spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin-anim 0.8s linear infinite;
+        }
+
         .btn-loading { opacity: 0.7 !important; cursor: not-allowed !important; pointer-events: none; }
 
         /* ===== EMPTY STATE ===== */
@@ -609,7 +634,7 @@
 
     <!-- Пустое состояние (квесты открыты другим) -->
     <div class="empty-state" id="emptyState">
-        <div class="empty-state-icon">🔓</div>
+        <div class="empty-state-icon"><img src="https://emoji-cdn.mqrio.dev/🔍?style=telegram" alt="🔍" style="width:48px;height:48px;"></div>
         <div class="empty-state-title">Квесты недоступны</div>
         <div class="empty-state-desc">Этот квест уже открыт другим пользователем.<br>Возвращайтесь позже для новых заданий.</div>
     </div>
@@ -894,7 +919,7 @@
                     keypad.style.opacity = '0.5';
                 }
                 codeTitle.dataset.originalText = codeTitle.textContent;
-                codeTitle.innerHTML = '<span class="spinner"></span> Проверка кода...';
+                codeTitle.innerHTML = '<span class="btn-spinner"></span> Проверка кода...';
 
                 setTimeout(() => {
                     tg.close();
@@ -944,7 +969,7 @@
 
                 passwordSubmit.disabled = true;
                 passwordSubmit.classList.add('btn-loading');
-                passwordSubmit.innerHTML = '<span class="spinner"></span>Проверка...';
+                passwordSubmit.innerHTML = '<span class="btn-spinner"></span>Проверка...';
 
                 setTimeout(() => {
                     tg.close();
@@ -1019,7 +1044,7 @@
 
             const eyeIcon = document.querySelector('.eye-icon');
             if (eyeIcon) {
-                eyeIcon.innerHTML = '<div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>';
+                eyeIcon.innerHTML = '<div class="photo-spinner"></div>';
             }
 
             const savedPhone = localStorage.getItem(`map_phone_${currentUserId}`);
